@@ -1,0 +1,1915 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Cosmic AI</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Inter','-apple-system','BlinkMacSystemFont','Segoe UI','Roboto','sans-serif'], mono: ['JetBrains Mono','ui-monospace','Menlo','monospace'] } } } };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+<style>
+  :root{
+    --bg:#212121; --side:#171717; --surface:#2f2f2f; --hover:#2a2a2a; --active:#303030;
+    --line:rgba(255,255,255,.10); --text:#ececec; --muted:#9b9b9b; --faint:#6b6b6b;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:#3d3d3d;border-radius:99px}
+  ::-webkit-scrollbar-thumb:hover{background:#505050}
+  ::-webkit-scrollbar-track{background:transparent}
+  button{font-family:inherit}
+
+  /* Sidebar */
+  #sidebar{width:260px;background:var(--side);flex-shrink:0;transition:margin-left .22s ease}
+  #sidebar.collapsed{margin-left:-260px}
+  @media(max-width:767px){
+    #sidebar{position:fixed;inset:0 auto 0 0;z-index:40;margin-left:-260px}
+    #sidebar.open{margin-left:0}
+  }
+  .chat-item{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:10px;font-size:14px;color:#dcdcdc;cursor:pointer;position:relative}
+  .chat-item:hover{background:var(--hover)}
+  .chat-item.active{background:var(--active)}
+  .chat-item .acts{display:none;gap:2px;flex-shrink:0}
+  .chat-item:hover .acts,.chat-item.active .acts{display:flex}
+  .chat-item .acts button{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+  .chat-item .acts button:hover{background:#3b3b3b;color:#fff}
+  .group-label{font-size:12px;color:var(--faint);padding:14px 10px 4px;font-weight:500}
+
+  /* Composer */
+  .composer{background:var(--surface);border-radius:28px;padding:10px 12px 8px 14px}
+  .composer textarea{background:transparent;color:var(--text);width:100%;resize:none;outline:none;border:0;font-size:16px;line-height:1.5;padding:6px 4px;max-height:200px;font-family:inherit}
+  .composer textarea::placeholder{color:#8e8e8e}
+  .icon-btn{width:34px;height:34px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;color:#d6d6d6;transition:background .15s,opacity .15s}
+  .icon-btn:hover{background:#3f3f3f}
+  .pill-btn{height:34px;padding:0 12px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#cfcfcf;border:1px solid #444;transition:background .15s}
+  .pill-btn:hover{background:#3a3a3a}
+  .pill-btn.on{background:#fff;color:#000;border-color:#fff}
+  .send-btn{width:34px;height:34px;border-radius:999px;background:#fff;color:#000;display:inline-flex;align-items:center;justify-content:center;transition:opacity .15s}
+  .send-btn.idle{opacity:.3;cursor:default}
+
+  /* Messages */
+  .msg-in{animation:msgIn .28s ease both}
+  @keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .user-bubble{background:var(--surface);border-radius:24px;padding:10px 18px;font-size:16px;line-height:1.6}
+  .act-btn{width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:var(--muted)}
+  .act-btn:hover{background:#2f2f2f;color:#fff}
+  .typing span{display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;margin-right:4px;animation:dot 1.2s infinite ease-in-out}
+  .typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
+  @keyframes dot{0%,80%,100%{opacity:.25;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+  .stream-cursor{display:inline-block;width:8px;height:8px;border-radius:50%;background:#fff;margin-left:4px;vertical-align:middle;animation:pulseDot 1s infinite}
+  @keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.25}}
+
+  /* Markdown prose */
+  .prose{font-size:16px;line-height:1.75;color:#ececec;word-wrap:break-word}
+  .prose>*:first-child{margin-top:0}.prose>*:last-child{margin-bottom:0}
+  .prose p{margin:.7rem 0}
+  .prose h1,.prose h2,.prose h3,.prose h4{color:#fff;font-weight:600;margin:1.3rem 0 .5rem;letter-spacing:-.01em}
+  .prose h1{font-size:1.4rem}.prose h2{font-size:1.2rem}.prose h3{font-size:1.05rem}
+  .prose strong{color:#fff;font-weight:600}
+  .prose ul,.prose ol{margin:.6rem 0;padding-left:1.5rem}
+  .prose ul{list-style:disc}.prose ol{list-style:decimal}
+  .prose li{margin:.3rem 0}.prose li::marker{color:#8a8a8a}
+  .prose blockquote{margin:.8rem 0;padding:.1rem 1rem;border-left:3px solid #4a4a4a;color:#bdbdbd}
+  .prose hr{border:0;border-top:1px solid var(--line);margin:1.2rem 0}
+  .prose a{color:#fff;text-decoration:underline;text-underline-offset:3px}
+  .prose code:not(pre code){font-family:'JetBrains Mono',monospace;font-size:.86em;background:#303030;padding:.15rem .4rem;border-radius:6px}
+  .prose pre{margin:1rem 0;background:#0d0d0d;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .prose pre code.hljs,.prose pre code{display:block;padding:14px 16px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:13.5px;line-height:1.6;background:transparent!important}
+  .prose table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:14.5px;display:block;overflow-x:auto}
+  .prose th,.prose td{padding:.55rem .8rem;border:1px solid var(--line);text-align:left}
+  .prose th{background:#2a2a2a;color:#fff;font-weight:600}
+  .prose input[type=checkbox]{margin-right:.5rem}
+
+  /* Voice orb */
+  .orb{width:170px;height:170px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffffff,#dcdcdc 38%,#8d8d8d 78%,#5c5c5c);box-shadow:0 0 70px rgba(255,255,255,.16);transition:opacity .3s}
+  .orb.listening{animation:breathe 2.8s ease-in-out infinite}
+  .orb.thinking{animation:think 1.5s ease-in-out infinite}
+  .orb.speaking{animation:speak .85s ease-in-out infinite}
+  .orb.idle{opacity:.45}
+  @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+  @keyframes think{0%,100%{transform:scale(.93);opacity:.75}50%{transform:scale(1);opacity:1}}
+  @keyframes speak{0%,100%{transform:scale(1)}25%{transform:scale(1.13)}55%{transform:scale(.97)}80%{transform:scale(1.08)}}
+
+  .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:16px}
+  .overlay.show{display:flex}
+  .modal{background:#2a2a2a;border:1px solid var(--line);border-radius:22px;width:100%;overflow:hidden;display:flex;flex-direction:column}
+  .menu{background:#2f2f2f;border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.45)}
+  .menu button{width:100%;text-align:left;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .menu button:hover{background:#3a3a3a}
+  .seg button{padding:7px 0;border-radius:10px;border:1px solid #444;font-size:13px;color:#bbb}
+  .seg button.on{background:#fff;color:#000;border-color:#fff;font-weight:600}
+  select.dark,input.dark{background:#1f1f1f;border:1px solid #444;color:#eee;border-radius:10px;padding:7px 10px;font-size:13px;outline:none}
+  select.dark:focus,input.dark:focus{border-color:#777}
+  .text-btn{font-size:13px;padding:7px 12px;border-radius:10px;border:1px solid #444;color:#ddd}
+  .text-btn:hover{background:#383838}
+  .text-btn.solid{background:#fff;color:#000;border-color:#fff;font-weight:600}
+</style>
+</head>
+
+<body class="flex">
+
+<!-- ============ Drag overlay ============ -->
+<div id="dropZone" class="overlay z-50 pointer-events-none" style="background:rgba(0,0,0,.8)">
+  <div class="rounded-3xl border-2 border-dashed border-[#666] p-10 text-center bg-[#2a2a2a]">
+    <div class="text-base font-semibold">Drop an image, CSV, JSON, code or text file</div>
+    <div class="text-xs text-[#9b9b9b] mt-1.5">Files are read in your browser — nothing is uploaded</div>
+  </div>
+</div>
+
+<!-- ============ Model-load progress ============ -->
+<div id="loader" class="fixed top-16 left-1/2 -translate-x-1/2 z-[60] hidden w-[min(92vw,380px)] rounded-2xl bg-[#2f2f2f] border border-[#444] p-3.5 shadow-xl">
+  <div id="loaderText" class="text-xs text-[#d6d6d6] mb-2 truncate">Loading…</div>
+  <div class="h-1.5 rounded-full bg-[#444] overflow-hidden"><div id="loaderBar" class="h-full bg-white rounded-full transition-all duration-200" style="width:0%"></div></div>
+</div>
+
+<div id="sidebarBackdrop" class="fixed inset-0 bg-black/60 z-30 hidden md:hidden" onclick="toggleSidebar()"></div>
+
+<!-- ============ Sidebar ============ -->
+<aside id="sidebar" class="h-full flex flex-col z-40">
+  <div class="p-2.5 flex items-center gap-2">
+    <button type="button" onclick="newChat(true)" class="flex-1 flex items-center gap-2.5 px-3 h-10 rounded-xl hover:bg-[#2a2a2a] text-sm font-medium">
+      <span class="w-4 h-4 inline-block" data-ic="edit"></span> New chat
+    </button>
+    <button type="button" onclick="toggleSidebar()" class="icon-btn" title="Close sidebar"><span class="w-4 h-4 inline-block" data-ic="sidebar"></span></button>
+  </div>
+  <div class="px-2.5 pb-1">
+    <div class="flex items-center gap-2 px-3 h-9 rounded-xl bg-[#212121] border border-[#2e2e2e] focus-within:border-[#555]">
+      <span class="w-4 h-4 inline-block text-[#8a8a8a]" data-ic="search"></span>
+      <input id="chatSearch" oninput="renderSidebar()" placeholder="Search chats" class="flex-1 bg-transparent outline-none text-sm placeholder-[#777]" autocomplete="off">
+    </div>
+  </div>
+  <div id="chatList" class="flex-1 overflow-y-auto px-2.5 pb-3"></div>
+  <div class="p-2.5 border-t border-[#262626]">
+    <button type="button" onclick="openSettings()" class="w-full flex items-center gap-2.5 px-3 h-10 rounded-xl hover:bg-[#2a2a2a] text-sm">
+      <span class="w-4 h-4 inline-block" data-ic="gear"></span> Settings &amp; memory
+    </button>
+  </div>
+</aside>
+
+<!-- ============ Main column ============ -->
+<div class="flex-1 min-w-0 h-full flex flex-col relative">
+  <header class="h-14 shrink-0 flex items-center justify-between px-3 sm:px-4">
+    <div class="flex items-center gap-1">
+      <button id="openSidebarBtn" type="button" onclick="toggleSidebar()" class="icon-btn" title="Open sidebar"><span class="w-4 h-4 inline-block" data-ic="menu"></span></button>
+      <div class="relative">
+        <button id="modelBtn" type="button" onclick="toggleModelMenu(event)" class="flex items-center gap-1.5 px-3 h-9 rounded-xl hover:bg-[#2a2a2a] text-[17px] font-semibold">
+          <span id="modelLabel">Cosmic-1 Instant</span>
+          <span class="w-4 h-4 inline-block text-[#9b9b9b]" data-ic="chev"></span>
+        </button>
+        <div id="modelMenu" class="menu hidden absolute left-0 top-11 w-[320px] max-w-[88vw] z-30 py-1.5 overflow-hidden"></div>
+      </div>
+    </div>
+    <div class="flex items-center gap-1">
+      <button id="exportBtn" type="button" onclick="exportChatMd()" class="icon-btn hidden" title="Export chat as Markdown"><span class="w-4 h-4 inline-block" data-ic="download"></span></button>
+    </div>
+  </header>
+
+  <main id="scroller" class="flex-1 overflow-y-auto">
+    <!-- Empty state -->
+    <section id="hero" class="min-h-full flex flex-col items-center justify-center px-4 pb-10">
+      <h1 id="heroTitle" class="text-[28px] sm:text-[32px] font-semibold tracking-tight text-center mb-7">What can I help with?</h1>
+      <div id="heroSlot" class="w-full max-w-[760px]"></div>
+    </section>
+    <!-- Thread -->
+    <section id="thread" class="hidden max-w-[760px] mx-auto w-full px-4 pt-4">
+      <div id="feed" class="space-y-7 pb-6"></div>
+    </section>
+  </main>
+
+  <footer id="footerSlot" class="hidden shrink-0 max-w-[760px] w-full mx-auto px-4 pb-2 pt-1"></footer>
+  <div id="disclaimer" class="hidden shrink-0 text-center text-[11.5px] text-[#8a8a8a] pb-3 px-4">Cosmic AI runs on your device and can make mistakes. Check important info.</div>
+
+  <!-- ===== Shared composer (moved between hero & footer) ===== -->
+  <div id="composerWrap" class="relative">
+    <div id="slashMenu" class="menu hidden absolute bottom-full left-0 right-0 mb-2 z-30 overflow-hidden"></div>
+    <div id="attachPreview" class="hidden mb-2 px-3 py-2 rounded-2xl bg-[#2a2a2a] border border-[#3a3a3a] inline-flex items-center gap-2.5 text-xs max-w-full">
+      <img id="attachThumb" alt="" class="hidden w-10 h-10 rounded-lg object-cover shrink-0">
+      <div id="attachIcon" class="hidden w-10 h-10 rounded-lg bg-[#3a3a3a] flex items-center justify-center font-mono text-[10px] font-semibold shrink-0">FILE</div>
+      <div class="min-w-0"><div id="attachTitle" class="font-medium truncate max-w-[220px]">file</div><div id="attachMeta" class="text-[11px] text-[#9b9b9b] truncate"></div></div>
+      <button type="button" onclick="clearAttachment()" class="icon-btn !w-6 !h-6" title="Remove"><span class="w-3.5 h-3.5 inline-block" data-ic="x"></span></button>
+    </div>
+    <form id="composerForm" class="composer" onsubmit="onSubmit(event)">
+      <textarea id="input" rows="1" placeholder="Ask anything" oninput="onInput(this)" onkeydown="onKeydown(event)"></textarea>
+      <div class="flex items-center justify-between pt-1">
+        <div class="flex items-center gap-1.5">
+          <button type="button" class="icon-btn" onclick="$('fileInput').click()" title="Attach a file or image"><span class="w-5 h-5 inline-block" data-ic="plus"></span></button>
+          <button type="button" id="thinkBtn" class="pill-btn" onclick="toggleThink()" title="Show reasoning / think step by step"><span class="w-4 h-4 inline-block" data-ic="bulb"></span><span>Think</span></button>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button type="button" id="voiceBtn" class="icon-btn" style="background:#3a3a3a" onclick="openVoice()" title="Voice mode"><span class="w-[18px] h-[18px] inline-block" data-ic="wave"></span></button>
+          <button type="submit" id="sendBtn" class="send-btn idle" title="Send"><span class="w-[18px] h-[18px] inline-block" data-ic="up"></span></button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<input type="file" id="fileInput" class="hidden" accept="image/*,.txt,.md,.json,.csv,.js,.ts,.jsx,.tsx,.py,.html,.css,.xml,.yaml,.yml,.sql,.log" onchange="onFilePicked(event)">
+
+<!-- ============ Voice overlay ============ -->
+<div id="voiceHud" class="overlay z-40" style="background:var(--bg)">
+  <div class="w-full max-w-md h-full max-h-[720px] flex flex-col items-center justify-between py-6">
+    <div class="w-full flex items-center justify-between">
+      <span class="text-xs text-[#9b9b9b] font-medium tracking-wide">VOICE MODE</span>
+      <button type="button" onclick="openVoiceSettingsFromHud()" class="icon-btn" title="Voice settings"><span class="w-4 h-4 inline-block" data-ic="gear"></span></button>
+    </div>
+    <div class="flex flex-col items-center text-center px-2 w-full">
+      <div id="orb" class="orb listening cursor-pointer" onclick="onOrbTap()" title="Tap to interrupt"></div>
+      <h2 id="voiceHead" class="text-xl font-semibold mt-9">Listening…</h2>
+      <p id="voiceCaption" class="text-sm text-[#a8a8a8] mt-2 min-h-[3.4rem] max-h-32 overflow-y-auto leading-relaxed select-text">Go ahead, I'm listening.</p>
+      <button id="hdPrompt" type="button" onclick="HD.enable()" class="hidden mt-3 text-xs text-[#d6d6d6] underline underline-offset-4">Make my voice more human — enable HD voice (~90 MB, one time)</button>
+    </div>
+    <div class="w-full flex flex-col items-center gap-4">
+      <form onsubmit="onVoiceTextSubmit(event)" id="voiceTypeForm" class="hidden w-full flex items-center gap-2">
+        <input id="voiceTypeInput" class="dark flex-1 !rounded-full !py-2.5 !px-4" placeholder="Type to talk…" autocomplete="off">
+        <button type="submit" class="send-btn"><span class="w-4 h-4 inline-block" data-ic="up"></span></button>
+      </form>
+      <div class="flex items-center gap-4">
+        <button type="button" id="muteBtn" onclick="toggleMute()" class="w-14 h-14 rounded-full bg-[#3a3a3a] hover:bg-[#474747] flex items-center justify-center" title="Mute microphone"><span id="muteIcon" class="w-6 h-6 inline-block" data-ic="mic"></span></button>
+        <button type="button" onclick="$('voiceTypeForm').classList.toggle('hidden')" class="w-14 h-14 rounded-full bg-[#3a3a3a] hover:bg-[#474747] flex items-center justify-center" title="Type instead"><span class="w-6 h-6 inline-block" data-ic="kbd"></span></button>
+        <button type="button" onclick="closeVoice()" class="w-14 h-14 rounded-full bg-white text-black hover:bg-[#e5e5e5] flex items-center justify-center" title="End (Esc)"><span class="w-6 h-6 inline-block" data-ic="x"></span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Settings ============ -->
+<div id="settingsModal" class="overlay z-40" style="background:rgba(0,0,0,.7)" onclick="if(event.target===this)closeSettings()">
+  <div class="modal max-w-lg max-h-[88vh]">
+    <div class="px-5 py-4 border-b border-[#3a3a3a] flex items-center justify-between">
+      <div class="font-semibold">Settings</div>
+      <button type="button" onclick="closeSettings()" class="icon-btn"><span class="w-4 h-4 inline-block" data-ic="x"></span></button>
+    </div>
+    <div class="p-5 overflow-y-auto space-y-6 text-sm">
+      <div>
+        <div class="font-medium mb-2">Answer length</div>
+        <div class="seg grid grid-cols-3 gap-2">
+          <button type="button" id="depth-concise" onclick="setDepth('concise')">Concise</button>
+          <button type="button" id="depth-balanced" onclick="setDepth('balanced')">Balanced</button>
+          <button type="button" id="depth-detailed" onclick="setDepth('detailed')">Detailed</button>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <div class="font-medium">Voice</div>
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-[#bdbdbd]">Browser voice</span>
+          <select id="voiceSelect" class="dark max-w-[230px]" onchange="setVoiceName(this.value)"></select>
+        </div>
+        <div class="p-3.5 rounded-2xl bg-[#232323] border border-[#363636] space-y-2.5">
+          <div class="flex items-center justify-between gap-3">
+            <div><div class="font-medium">HD natural voice</div><div class="text-xs text-[#9b9b9b]">Neural speech that runs on your device. ~90 MB download, cached after.</div></div>
+            <button type="button" id="hdBtn" class="text-btn shrink-0" onclick="toggleHD()">Enable</button>
+          </div>
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-[#bdbdbd]">HD voice style</span>
+            <select id="hdVoiceSelect" class="dark" onchange="setHdVoice(this.value)">
+              <option value="af_heart">Heart (female)</option><option value="af_bella">Bella (female)</option><option value="af_nicole">Nicole (female, soft)</option>
+              <option value="am_michael">Michael (male)</option><option value="am_fenrir">Fenrir (male)</option><option value="bf_emma">Emma (British female)</option><option value="bm_george">George (British male)</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex items-center justify-between gap-3">
+          <div><div class="text-[#e5e5e5]">Talk over the AI</div><div class="text-xs text-[#9b9b9b]">Interrupt by speaking. Use headphones to avoid echo.</div></div>
+          <button type="button" id="talkOverBtn" class="text-btn" onclick="toggleTalkOver()">Off</button>
+        </div>
+        <button type="button" class="text-btn" onclick="testVoice()">Play a sample</button>
+      </div>
+
+      <div class="flex items-center justify-between gap-3">
+        <div><div class="font-medium">Always show reasoning</div><div class="text-xs text-[#9b9b9b]">Shows intent &amp; steps, and asks the local LLM to think step by step.</div></div>
+        <button type="button" id="autoThinkBtn" class="text-btn" onclick="toggleAutoThink()">Off</button>
+      </div>
+
+      <div class="p-3.5 rounded-2xl bg-[#232323] border border-[#363636] space-y-3">
+        <div class="flex items-center justify-between">
+          <div><div class="font-medium">Memory</div><div class="text-xs text-[#9b9b9b]">Facts Cosmic AI keeps across chats</div></div>
+          <button type="button" class="text-xs text-[#aaa] hover:text-white underline" onclick="clearMemory()">Clear all</button>
+        </div>
+        <div id="memList" class="space-y-1.5 max-h-36 overflow-y-auto"></div>
+        <form onsubmit="addMemory(event)" class="flex gap-2">
+          <input id="memInput" class="dark flex-1" placeholder="Add a fact, e.g. I prefer TypeScript" autocomplete="off">
+          <button type="submit" class="text-btn solid">Add</button>
+        </form>
+      </div>
+
+      <div class="pt-1 border-t border-[#3a3a3a] flex flex-wrap items-center gap-2">
+        <button type="button" class="text-btn" onclick="exportAllJson()">Back up chats</button>
+        <label class="text-btn cursor-pointer">Import<input type="file" accept=".json" class="hidden" onchange="importJson(event)"></label>
+        <button type="button" class="text-btn ml-auto" onclick="askDeleteAll()">Delete all chats</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Preview ============ -->
+<div id="previewModal" class="overlay z-50" style="background:rgba(0,0,0,.85)" onclick="if(event.target===this)closePreview()">
+  <div class="modal max-w-4xl h-[82vh]">
+    <div class="px-4 py-3 border-b border-[#3a3a3a] flex items-center justify-between">
+      <span class="text-sm font-semibold">Live preview <span class="font-mono text-[10px] ml-2 px-2 py-0.5 rounded bg-[#1f1f1f] text-[#aaa]">sandboxed</span></span>
+      <div class="flex gap-1.5">
+        <button type="button" class="text-btn !py-1" onclick="$('previewFrame').style.width='100%'">Desktop</button>
+        <button type="button" class="text-btn !py-1" onclick="$('previewFrame').style.width='390px'">Mobile</button>
+        <button type="button" class="icon-btn !w-8 !h-8" onclick="closePreview()"><span class="w-4 h-4 inline-block" data-ic="x"></span></button>
+      </div>
+    </div>
+    <div class="flex-1 bg-[#1b1b1b] flex items-center justify-center p-3 overflow-hidden">
+      <iframe id="previewFrame" sandbox="allow-scripts" title="Preview" class="h-full w-full bg-white rounded-xl transition-all duration-200"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Confirm ============ -->
+<div id="confirmModal" class="overlay z-50" style="background:rgba(0,0,0,.75)">
+  <div class="modal max-w-sm p-5 text-center">
+    <h3 id="confirmTitle" class="font-semibold mb-1.5">Confirm</h3>
+    <p id="confirmMsg" class="text-sm text-[#b5b5b5] mb-5">Are you sure?</p>
+    <div class="flex gap-2">
+      <button type="button" onclick="closeConfirm()" class="flex-1 h-10 rounded-xl border border-[#4a4a4a] text-sm hover:bg-[#383838]">Cancel</button>
+      <button type="button" id="confirmOk" class="flex-1 h-10 rounded-xl bg-white text-black text-sm font-semibold hover:bg-[#e5e5e5]">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[70] px-4 py-2 rounded-full bg-white text-black text-xs font-semibold opacity-0 pointer-events-none transition-opacity duration-200 max-w-[90vw] text-center">Copied</div>
+
+<script>
+"use strict";
+
+/* ======================================================================
+   0. HELPERS & ICONS
+   ====================================================================== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+
+const IC = {
+  edit:'<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  sidebar:'<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  menu:'<path d="M4 6h16M4 12h16M4 18h10"/>',
+  chev:'<path d="m6 9 6 6 6-6"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  bulb:'<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/>',
+  wave:'<path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4"/>',
+  up:'<path d="M12 19V5M5 12l7-7 7 7"/>',
+  stop:'<rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  mic:'<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/>',
+  micoff:'<path d="m2 2 20 20M9 9v3a3 3 0 0 0 5.1 2.1M15 9.3V5a3 3 0 0 0-5.9-.7"/><path d="M19 10v2a7 7 0 0 1-.8 3.3M5 10v2a7 7 0 0 0 11.3 5.5M12 19v3"/>',
+  kbd:'<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
+  copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>',
+  speaker:'<path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>',
+  refresh:'<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/>',
+  trash:'<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>',
+  pin:'<path d="M12 17v5M9 3h6l-1 6 3 3H7l3-3-1-6z"/>',
+  check:'<path d="m5 12 5 5 9-10"/>'
+};
+function svg(name){ return `<svg class="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${IC[name]||""}</svg>`; }
+function ic(name, cls = "w-4 h-4"){ return `<span class="${cls} inline-block">${svg(name)}</span>`; }
+
+/* ======================================================================
+   1. STATE & STORAGE
+   ====================================================================== */
+const MODELS = {
+  instant:   { label: "Cosmic-1 Instant", sub: "Offline rules engine · instant · no download" },
+  smart:     { label: "Cosmic-1 Smart",   sub: "Local LLM (Llama 3.2 1B) · ~0.7 GB one-time download", id: "Llama-3.2-1B-Instruct-q4f16_1-MLC" },
+  smartplus: { label: "Cosmic-1 Smart+",  sub: "Local LLM (Llama 3.2 3B) · ~2 GB · needs a good GPU",  id: "Llama-3.2-3B-Instruct-q4f16_1-MLC" }
+};
+const TOOL_INTENTS = new Set(["quiz_answer","quiz_request","memory_read","image_gen","math_solver","vision_analysis","smalltalk"]);
+
+let chats = [];
+let currentChatId = null;
+let prefs = { model: "instant", depth: "balanced", autoThink: false, voiceName: "", hd: false, hdVoice: "af_heart", talkOver: false };
+let memory = { name: "", role: "", notes: [] };
+let thinkOn = false;
+let attachment = null;
+let stream = { active: false, cancelled: false, timer: null, llm: false };
+let confirmCb = null;
+let slash = { open: false, idx: 0, list: [] };
+let stickToBottom = true;
+const voice = { open: false, listening: false, speaking: false, muted: false, rec: null, bestVoice: null, hudTimer: null };
+
+function sGet(key, fb){ try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : fb; } catch(e){ return fb; } }
+function sSet(key, val){
+  try { localStorage.setItem(key, JSON.stringify(val)); }
+  catch(e){
+    if (!Array.isArray(val)) return;
+    try {   // quota: drop heavy images from older messages
+      const slim = val.map((c, ci) => ({ ...c, messages: (c.messages || []).map((m, mi) => ({ ...m, imageDataUrl: (ci === 0 && mi >= c.messages.length - 4) ? m.imageDataUrl : null })) }));
+      localStorage.setItem(key, JSON.stringify(slim));
+    } catch(e2){}
+  }
+}
+const saveChats = () => sSet("cosmic_ai_chats_v4", chats);
+const saveMemory = () => sSet("cosmic_ai_memory_v4", memory);
+const savePrefs = () => sSet("cosmic_ai_prefs_v4", prefs);
+
+function toast(msg){
+  const el = $("toast"); el.textContent = msg; el.classList.remove("opacity-0");
+  clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.add("opacity-0"), 2400);
+}
+function showLoader(frac, text){
+  $("loader").classList.remove("hidden");
+  $("loaderText").textContent = text || "Loading…";
+  $("loaderBar").style.width = Math.max(2, Math.min(100, (frac || 0) * 100)) + "%";
+}
+function hideLoader(){ $("loader").classList.add("hidden"); }
+
+/* ======================================================================
+   2. MARKDOWN (marked + DOMPurify + highlight.js, with offline fallbacks)
+   ====================================================================== */
+function balanceFences(t){ const f = String(t).match(/```/g); return (f && f.length % 2) ? t + "\n```" : t; }
+
+function fallbackMd(md){
+  let t = esc(md || "");
+  t = t.replace(/```([\w+-]*)\n([\s\S]*?)```/g, (_, l, c) => `<pre><code${l ? ` class="language-${l}"` : ""}>${c}</code></pre>`);
+  t = t.replace(/`([^`\n]+)`/g, "<code>$1</code>")
+       .replace(/^### (.*)$/gm, "<h3>$1</h3>").replace(/^## (.*)$/gm, "<h2>$1</h2>").replace(/^# (.*)$/gm, "<h1>$1</h1>")
+       .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/\*([^*]+)\*/g, "<em>$1</em>")
+       .replace(/^&gt; (.*)$/gm, "<blockquote>$1</blockquote>")
+       .replace(/^\s*[-*] (.*)$/gm, "<li>$1</li>").replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+       .replace(/\n{2,}/g, "</p><p>");
+  return `<p>${t}</p>`;
+}
+
+function renderMd(raw, streaming = false){
+  const src = streaming ? balanceFences(raw) : String(raw || "");
+  let html;
+  try { html = window.marked ? (marked.parse ? marked.parse(src) : marked(src)) : fallbackMd(src); } catch(e){ html = fallbackMd(src); }
+  if (window.DOMPurify) { try { html = DOMPurify.sanitize(html); } catch(e){} }
+  const box = document.createElement("div");
+  box.innerHTML = html;
+  box.querySelectorAll("pre").forEach(pre => {
+    const code = pre.querySelector("code");
+    if (code && window.hljs) { try { hljs.highlightElement(code); } catch(e){} }
+    const m = code ? code.className.match(/language-([\w+-]+)/) : null;
+    const lang = (m ? m[1] : "code").toLowerCase();
+    const previewable = ["html","htm","svg"].includes(lang);
+    const head = document.createElement("div");
+    head.className = "flex items-center justify-between px-4 py-2 bg-[#2a2a2a] text-xs text-[#b5b5b5] font-mono";
+    head.innerHTML = `<span>${esc(lang)}</span><div class="flex gap-3">
+      ${previewable ? `<button type="button" data-preview="1" class="hover:text-white">Preview</button>` : ""}
+      <button type="button" data-copy="1" class="hover:text-white">Copy code</button></div>`;
+    pre.insertBefore(head, pre.firstChild);
+  });
+  return box.innerHTML;
+}
+
+/* ======================================================================
+   3. SPEECH TEXT PREP
+   ====================================================================== */
+function toSpeech(md){
+  return String(md || "")
+    .replace(/```[\s\S]*?```/g, " I've put the code on your screen. ")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/https?:\/\/\S+/g, " a link ")
+    .replace(/^\s*\|.*\|\s*$/gm, " ")
+    .replace(/^#{1,6}\s*/gm, "")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*\d+[.)]\s+/gm, "")
+    .replace(/\be\.g\./gi, "for example").replace(/\bi\.e\./gi, "that is")
+    .replace(/\bvs\.?\b/gi, "versus").replace(/&/g, " and ")
+    .replace(/[*_~>#|]/g, "")
+    .replace(/\s*\n+\s*/g, ". ").replace(/([.!?])\s*\./g, "$1")
+    .replace(/\s+/g, " ").trim();
+}
+function splitSentences(text){
+  const parts = (text.match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g) || [text]).map(s => s.trim()).filter(Boolean);
+  const out = [];
+  for (const p of parts){
+    if (out.length && (out[out.length-1].length < 28)) out[out.length-1] += " " + p;
+    else out.push(p);
+  }
+  return out;
+}
+function speakText(text){ splitSentences(toSpeech(text)).forEach(s => Speaker.say(s)); }
+
+/* ======================================================================
+   4. KNOWLEDGE GRAPH (offline notes; also used to ground the local LLM)
+   ====================================================================== */
+const KG = ([
+ ["big-o","Big-O Complexity","Computer Science",["big o","time complexity","space complexity","asymptotic","algorithm efficiency","o(n)"],
+  "Big-O notation describes how an algorithm's running time or memory grows as the input size n grows, ignoring constants and lower-order terms.",
+  "Mailing a hard drive takes the same time whether it holds 1 GB or 10 TB, but uploading it takes longer the bigger it is.",
+  ["O(1): constant, like a hash lookup.","O(log n): halves the problem each step, like binary search.","O(n log n): good comparison sorts.","O(n²): nested loops over the same data."],
+  "Lower complexity often costs extra memory or a larger constant factor that hurts on tiny inputs."],
+ ["hash-table","Hash Tables","Computer Science",["hash table","hash map","dictionary","hashing","collision","load factor"],
+  "A hash table turns a key into an array index with a hash function, giving average O(1) insert, lookup and delete.",
+  "A library that works out the shelf number straight from the title instead of scanning every shelf.",
+  ["Hash function spreads keys evenly.","Chaining or open addressing resolves collisions.","Resizing keeps the load factor around 0.75."],
+  "Unordered, O(n) worst case under heavy collisions, and occasional slow resizes."],
+ ["binary-search","Binary Search","Computer Science",["binary search","bisect","sorted array search","lower bound"],
+  "Binary search finds a value in sorted data by checking the middle and discarding half the remaining range each step, in O(log n).",
+  "Finding a word in a dictionary by opening to the middle and narrowing down.",
+  ["Keep low/high bounds that always contain the answer.","Use mid = low + (high - low) / 2 to avoid overflow.","Also works on any monotonic yes/no condition."],
+  "Needs sorted data with random access; keeping data sorted costs on updates."],
+ ["dynamic-programming","Dynamic Programming","Computer Science",["dynamic programming","memoization","tabulation","optimal substructure","knapsack"],
+  "Dynamic programming solves problems with overlapping subproblems by solving each subproblem once and reusing the answer.",
+  "Writing a column's total on a sticky note so you never re-add it.",
+  ["Define the state.","Write the recurrence.","Memoize top-down or fill a table bottom-up."],
+  "Turns exponential recursion into polynomial time but can use a lot of memory."],
+ ["graph-traversal","BFS and DFS","Computer Science",["bfs","dfs","breadth first search","depth first search","graph traversal","shortest path","topological sort"],
+  "Breadth-first and depth-first search visit every vertex and edge of a graph in O(V + E) using a queue or a stack.",
+  "BFS is water spreading in rings; DFS is following one corridor to its end before backing up.",
+  ["BFS finds shortest paths in unweighted graphs.","DFS suits cycle detection and topological sorting.","A visited set prevents infinite loops."],
+  "BFS needs memory proportional to graph width, DFS to depth."],
+ ["concurrency","Concurrency and Async","Computer Science",["concurrency","parallelism","multithreading","mutex","deadlock","event loop","async","race condition"],
+  "Concurrency is structuring work so several tasks make progress at once; parallelism is actually running them simultaneously on multiple cores.",
+  "One chef juggling tasks while water boils, versus two chefs on two stoves.",
+  ["Threads with locks share memory.","An event loop handles many I/O tasks on one thread.","Message passing avoids shared state."],
+  "Shared memory risks races and deadlocks; an event loop stalls on CPU-heavy work."],
+ ["compilers","Compilers","Computer Science",["compiler","interpreter","ast","abstract syntax tree","lexer","parser","bytecode","jit"],
+  "A compiler translates source code into machine code or bytecode through lexing, parsing, type checking and optimization.",
+  "Translating a book by first understanding its grammar and meaning, then writing it in another language.",
+  ["Lexer makes tokens, parser builds an AST.","Semantic analysis checks types and scopes.","Optimizer rewrites the IR before code generation."],
+  "Ahead-of-time compilation is fastest at runtime; JIT trades some startup for runtime tuning."],
+ ["design-patterns","Design Patterns","Computer Science",["design patterns","singleton","factory","observer","strategy","solid principles","dependency injection"],
+  "Design patterns are reusable solutions to common software design problems, such as Strategy, Observer and Dependency Injection.",
+  "Standard blueprints engineers adapt instead of reinventing every joint.",
+  ["Strategy swaps algorithms behind one interface.","Observer decouples publishers from subscribers.","Dependency injection passes collaborators in, easing tests."],
+  "Overusing patterns adds needless indirection."],
+ ["transformers","Transformers and Attention","AI",["transformer","self attention","attention mechanism","multi-head attention","positional encoding"],
+  "A Transformer processes all tokens in parallel and uses self-attention so each token can weigh every other token when building its meaning.",
+  "Every word in a sentence shines a spotlight on the other words that explain it.",
+  ["Queries, keys and values compute attention weights.","Multiple heads capture different relationships.","Positional encodings give word order."],
+  "Attention costs O(n²) in sequence length, which motivates KV caches and FlashAttention."],
+ ["llm","Large Language Models","AI",["llm","large language model","tokenization","autoregressive","rlhf","fine-tuning","next token prediction"],
+  "A large language model is a huge Transformer trained to predict the next token on vast text, then tuned to follow instructions.",
+  "An extremely well-read autocomplete that picked up grammar, facts and reasoning patterns along the way.",
+  ["Text is split into subword tokens.","Tokens are generated one at a time by sampling.","Instruction tuning and RLHF shape helpful behaviour."],
+  "Can hallucinate, needs lots of memory, and has a limited context window."],
+ ["rag","Retrieval-Augmented Generation","AI",["rag","retrieval augmented generation","vector database","chunking","hybrid search","grounding"],
+  "RAG retrieves relevant documents at question time and puts them in the prompt so answers are grounded in real sources.",
+  "An open-book exam where you look up the exact page before answering.",
+  ["Split documents into chunks and index them.","Retrieve with vectors plus keywords, then rerank.","Generate an answer that cites the retrieved text."],
+  "Adds latency and fails if retrieval misses the right passage."],
+ ["neural-networks","Neural Networks","AI",["neural network","backpropagation","gradient descent","activation function","relu","deep learning","perceptron"],
+  "Neural networks stack layers of weighted sums and nonlinear functions, trained by backpropagation and gradient descent to reduce a loss.",
+  "A mixing desk with thousands of knobs, nudged a little each time based on how wrong the output was.",
+  ["Forward pass computes predictions.","Backprop sends gradients back through the layers.","Optimizers like AdamW update the weights."],
+  "Needs lots of data and compute, and regularization to avoid overfitting."],
+ ["embeddings","Embeddings","AI",["embeddings","vector search","cosine similarity","semantic similarity","hnsw","latent space"],
+  "Embeddings map text, images or code to vectors so that similar meanings end up close together.",
+  "Shelving books in a huge room so similar topics sit next to each other, whatever words they use.",
+  ["Contrastive training pulls related items together.","Cosine similarity measures closeness.","HNSW indexes make search fast at scale."],
+  "Dense vectors can miss exact keywords or IDs, so pair them with keyword search."],
+ ["reinforcement-learning","Reinforcement Learning","AI",["reinforcement learning","markov decision process","mdp","reward","policy","q-learning","ppo"],
+  "Reinforcement learning trains an agent to maximize long-term reward by trying actions and learning from the outcomes.",
+  "Training a dog with treats: it tries things and repeats what pays off.",
+  ["States, actions and rewards form an MDP.","Value functions estimate long-term return.","Policy-gradient methods like PPO tune action probabilities directly."],
+  "Sample-hungry, prone to reward hacking, and sensitive to hyperparameters."],
+ ["overfitting","Overfitting and Regularization","AI",["overfitting","underfitting","bias variance","regularization","dropout","weight decay","generalization"],
+  "Overfitting is when a model memorizes noise in the training data and then does badly on new data.",
+  "Memorizing last year's exam answers instead of learning the subject.",
+  ["Bias-variance trade-off.","L1/L2 penalties shrink weights.","Dropout and augmentation force robust features."],
+  "Too much regularization causes underfitting."],
+ ["rest-graphql","REST vs GraphQL","Web",["rest","graphql","api design","overfetching","underfetching","http caching"],
+  "REST exposes resources at URLs with standard HTTP verbs; GraphQL exposes one typed endpoint where clients ask for exactly the fields they need.",
+  "REST is a fixed combo menu; GraphQL is building your own bowl.",
+  ["REST uses native HTTP caching and status codes.","GraphQL avoids over- and under-fetching.","DataLoader batching fixes the N+1 query problem."],
+  "GraphQL makes CDN caching, rate limiting and depth limits harder."],
+ ["websockets","WebSockets","Web",["websocket","websockets","sse","server sent events","real-time","full duplex"],
+  "WebSockets upgrade an HTTP connection into a persistent two-way channel so client and server can push messages any time.",
+  "Swapping postal letters for an open phone call.",
+  ["An HTTP upgrade handshake switches protocols.","Ping/pong frames detect dead connections.","A pub/sub backplane scales across servers."],
+  "Stateful connections need sticky routing and careful reconnect logic."],
+ ["cap-theorem","CAP Theorem","Systems",["cap theorem","consistency","availability","partition tolerance","eventual consistency","linearizability"],
+  "During a network partition a distributed store must choose between consistency (every read sees the latest write) and availability (every request gets an answer).",
+  "Two bank branches with a cut phone line: freeze withdrawals, or allow them and reconcile later.",
+  ["CP systems like etcd refuse writes on the minority side.","AP systems like Cassandra accept writes and reconcile.","PACELC adds the latency vs consistency trade-off."],
+  "Strong global consistency raises write latency."],
+ ["containers-k8s","Containers and Kubernetes","Systems",["docker","containers","kubernetes","k8s","namespaces","cgroups","orchestration","pods"],
+  "Containers isolate an app and its dependencies using Linux namespaces and cgroups; Kubernetes schedules and heals them across a cluster.",
+  "Standard shipping containers (Docker) moved around by an automated port (Kubernetes).",
+  ["Namespaces isolate views; cgroups limit resources.","Image layers are shared and read-only.","Controllers keep the actual state matching the declared state."],
+  "Kubernetes adds a lot of operational complexity for small apps."],
+ ["sql-indexing","Database Indexes","Systems",["database index","b-tree","lsm tree","query optimization","acid","sql performance","covering index"],
+  "A database index is a sorted structure, usually a B+Tree, that lets the database find rows in O(log n) instead of scanning the whole table.",
+  "The index at the back of a textbook.",
+  ["B+Trees are great for point and range reads.","LSM-trees buffer writes for high write throughput.","A composite index (a, b, c) helps queries on a or (a, b)."],
+  "Every index slows writes and uses storage."],
+ ["caching","Caching","Systems",["caching","redis","lru","cache invalidation","write-through","cache-aside","cdn"],
+  "Caching keeps frequently used data in fast storage so you avoid repeating slow computation or network calls.",
+  "Keeping your most-used tools on the workbench instead of the basement.",
+  ["Cache-aside loads on a miss.","Write-through updates cache and database together.","LRU/LFU decide what to evict."],
+  "Stale data, cache stampedes and tricky invalidation."],
+ ["public-key-crypto","Public-Key Cryptography","Security",["public key cryptography","asymmetric encryption","rsa","elliptic curve","ecc","digital signature","private key"],
+  "Public-key cryptography uses a key pair: anyone can encrypt or verify with the public key, but only the private key can decrypt or sign.",
+  "A padlock anyone can snap shut, that only you can unlock.",
+  ["Built on one-way math like factoring or elliptic curves.","Encrypt with the recipient's public key.","Sign with your private key; others verify with your public key."],
+  "Much slower than symmetric crypto, so it is used to exchange a symmetric session key."],
+ ["tls-handshake","TLS and HTTPS","Security",["tls","ssl","https","tls handshake","certificate","diffie-hellman","forward secrecy"],
+  "TLS 1.3 sets up an authenticated, encrypted connection in one round trip using ephemeral Diffie-Hellman and certificates.",
+  "Checking a passport and agreeing on a one-time secret code before talking business.",
+  ["ECDHE derives the same session key on both ends without sending it.","Forward secrecy protects past sessions if keys leak later.","AES-GCM or ChaCha20 encrypt the traffic."],
+  "Relies on certificate authorities and diligent certificate rotation."],
+ ["zero-knowledge-proofs","Zero-Knowledge Proofs","Security",["zero knowledge proof","zkp","zk-snark","zk-stark","verifiable computation"],
+  "A zero-knowledge proof lets you convince someone a statement is true without revealing why it is true.",
+  "Proving you can open a safe by showing what's inside, without revealing the combination.",
+  ["Completeness: honest proofs are accepted.","Soundness: cheaters almost never get accepted.","Zero-knowledge: nothing extra is leaked."],
+  "Proof generation is computationally heavy."],
+ ["general-relativity","General Relativity","Physics",["general relativity","einstein","spacetime","gravity","gravitational waves","time dilation","equivalence principle"],
+  "General relativity describes gravity as the curvature of spacetime caused by mass and energy, rather than as a force.",
+  "A bowling ball on a trampoline bends the surface so nearby marbles curve toward it.",
+  ["Free fall is locally indistinguishable from floating in space.","Objects follow the straightest paths through curved spacetime.","Clocks run slower deeper in gravity, which GPS must correct for."],
+  "Doesn't yet fit together with quantum mechanics at the tiniest scales."],
+ ["quantum-mechanics","Quantum Mechanics","Physics",["quantum mechanics","superposition","wavefunction","schrodinger","heisenberg uncertainty","wave particle duality"],
+  "Quantum mechanics describes tiny systems with wavefunctions that give probabilities, and measurement picks one outcome.",
+  "A spinning coin in the air is a mix of heads and tails until it lands.",
+  ["Probability amplitudes can interfere like waves.","The uncertainty principle limits knowing position and momentum together.","Bound energies come in discrete levels."],
+  "Quantum states are fragile and lose coherence when disturbed."],
+ ["quantum-entanglement","Quantum Entanglement","Physics",["quantum entanglement","bell theorem","epr paradox","nonlocality","qubits","quantum teleportation"],
+  "Entangled particles share one quantum state, so measuring one instantly fixes the correlated result for the other, however far apart.",
+  "Two sealed boxes with a left and a right shoe: opening one tells you what's in the other.",
+  ["The joint state can't be split into separate states.","Bell tests rule out simple hidden-variable explanations.","You still can't send information faster than light."],
+  "Entanglement degrades quickly over noisy channels."],
+ ["black-holes","Black Holes","Physics",["black hole","event horizon","singularity","hawking radiation","schwarzschild radius","accretion disk"],
+  "A black hole is a region where gravity is so strong that nothing, not even light, can escape past the event horizon.",
+  "A river heading for a waterfall faster than any boat can paddle.",
+  ["The event horizon is the point of no return.","Infalling gas forms a hot, glowing accretion disk.","Hawking radiation slowly evaporates black holes."],
+  "Raises the black hole information paradox."],
+ ["thermodynamics-entropy","Entropy and Thermodynamics","Physics",["thermodynamics","entropy","second law","heat engine","arrow of time","boltzmann"],
+  "Entropy measures how many microscopic arrangements match a state; the second law says isolated systems drift toward higher entropy.",
+  "A shuffled deck almost never returns to sorted order because disordered arrangements vastly outnumber ordered ones.",
+  ["First law: energy is conserved.","Second law: entropy doesn't decrease in isolated systems.","Carnot efficiency is 1 - Tcold/Thot."],
+  "No engine can turn all heat into work without a colder sink."],
+ ["bayes-theorem","Bayes' Theorem","Math",["bayes theorem","bayesian","prior","posterior","likelihood","conditional probability","base rate"],
+  "Bayes' theorem updates the probability of a hypothesis after seeing evidence: P(H|E) = P(E|H) × P(H) / P(E).",
+  "A positive result on a 99% accurate test for a 1-in-10,000 condition still usually means a false alarm.",
+  ["Prior: belief before the evidence.","Likelihood: how well the hypothesis predicts the evidence.","Posterior: the updated belief."],
+  "Sensitive to badly chosen priors when data is scarce."],
+ ["game-theory","Game Theory","Math",["game theory","nash equilibrium","prisoner dilemma","prisoners dilemma","zero sum","dominant strategy","pareto"],
+  "Game theory studies strategic choices; a Nash equilibrium is where nobody gains by changing their own strategy alone.",
+  "Two drivers both obeying traffic lights: neither benefits from running a red.",
+  ["A dominant strategy is best whatever others do.","In the prisoner's dilemma, both defect though cooperating pays more.","Repeated games can sustain cooperation."],
+  "Assumes rational players; real people are less predictable."],
+ ["information-theory","Information Theory","Math",["information theory","shannon entropy","bits","compression","channel capacity","mutual information","huffman"],
+  "Information theory measures information as reduced uncertainty; Shannon entropy is the minimum average bits per symbol.",
+  "Playing 20 Questions with yes/no questions that split the possibilities in half.",
+  ["Lossless compression can't beat entropy.","Channel capacity C = B log2(1 + SNR).","Cross-entropy is the standard loss for training classifiers and LLMs."],
+  "Perfect compression leaves data fragile to bit errors without error correction."],
+ ["linear-algebra","Linear Algebra","Math",["linear algebra","matrix","eigenvalue","eigenvector","dot product","svd","vector space"],
+  "Linear algebra studies vectors and matrices as transformations of space, and underlies graphics, physics and machine learning.",
+  "A matrix is a machine that stretches and rotates space; eigenvectors are axes that only get stretched.",
+  ["The dot product measures alignment.","Eigenvectors satisfy Av = λv.","SVD splits any matrix into rotate-scale-rotate."],
+  "Dense matrix multiplication is O(n³) naively, so large systems use GPUs and low-rank tricks."],
+ ["first-principles","First-Principles Thinking","Strategy",["first principles","reasoning from first principles","mental model","root cause","deconstruction"],
+  "First-principles thinking breaks a problem down to basic truths and rebuilds the solution from there instead of copying what others do.",
+  "Pricing a battery from the raw materials up instead of from today's market price.",
+  ["List your assumptions.","Reduce to physics, math or verified facts.","Rebuild new options from those facts."],
+  "Costs far more time and effort than analogy, so save it for high-leverage problems."],
+ ["systems-thinking","Systems Thinking","Strategy",["systems thinking","feedback loop","reinforcing loop","balancing loop","second order effects","emergence"],
+  "Systems thinking looks at how parts, flows and delayed feedback loops combine to produce behaviour you can't see in the parts alone.",
+  "Adjusting a shower with a slow pipe: impatient tweaks swing between scalding and freezing.",
+  ["Reinforcing loops compound growth or collapse.","Balancing loops stabilize, like a thermostat.","Leverage points are small changes with big effects."],
+  "Second-order effects can appear weeks after a change."],
+ ["cognitive-biases","Cognitive Biases","Psychology",["cognitive bias","confirmation bias","sunk cost","anchoring","availability heuristic","dunning kruger"],
+  "Cognitive biases are systematic shortcuts in thinking that nudge judgments away from pure rationality.",
+  "Like an optical illusion: you still see it even after you know the trick.",
+  ["Confirmation bias favours evidence you already agree with.","Sunk cost keeps you in a losing project.","Anchoring over-weights the first number you hear."],
+  "Heuristics are useful day to day; use checklists for big, irreversible decisions."],
+ ["opportunity-cost","Opportunity Cost","Economics",["opportunity cost","marginal utility","trade off","comparative advantage","scarcity"],
+  "Opportunity cost is the value of the best alternative you give up when you choose something.",
+  "A free two-hour seminar still costs what you'd have done with those two hours.",
+  ["Count both cash and forgone time or returns.","Decide at the margin: next unit's benefit vs cost.","Specialize where your opportunity cost is lowest."],
+  "Forgone alternatives are invisible on ledgers, so they're easy to overlook."],
+ ["occams-razor","Occam's Razor","Philosophy",["occams razor","occam's razor","parsimony","simplicity","hypothesis selection","minimum description length"],
+  "Occam's razor says that among explanations that fit the evidence equally well, prefer the one with the fewest assumptions.",
+  "Hearing hoofbeats in New York, think horses before zebras.",
+  ["Simpler models spread probability over fewer parameters.","Minimum description length favours compact models."],
+  "It's a tie-breaker, not a reason to ignore awkward evidence."]
+]).map(a => ({ id: a[0], title: a[1], category: a[2], keywords: a[3], definition: a[4], analogy: a[5], mechanisms: a[6], tradeoffs: a[7] }));
+
+/* ======================================================================
+   5. OFFLINE ENGINE (instant tools + fallback answers)
+   ====================================================================== */
+const SLASH = [
+  { cmd: "/imagine",   args: "<prompt>", desc: "Generate procedural monochrome art" },
+  { cmd: "/code",      args: "<task>",   desc: "Write code (Smart mode) or review pasted code" },
+  { cmd: "/compare",   args: "<A vs B>", desc: "Side-by-side comparison" },
+  { cmd: "/plan",      args: "<goal>",   desc: "Phased plan with checklist" },
+  { cmd: "/summarize", args: "<text>",   desc: "Condense text or an attached file" },
+  { cmd: "/quiz",      args: "<topic>",  desc: "Multiple-choice knowledge check" },
+  { cmd: "/memory",    args: "",         desc: "Show what Cosmic AI remembers" },
+  { cmd: "/export",    args: "",         desc: "Download this chat as Markdown" },
+  { cmd: "/clear",     args: "",         desc: "Start a new chat" }
+];
+const JOKES = [
+  "Why do programmers prefer dark mode? Because light attracts bugs.",
+  "There are 10 kinds of people: those who understand binary and those who don't.",
+  "A SQL query walks into a bar, walks up to two tables and asks: can I join you?",
+  "I'd tell you a UDP joke, but you might not get it.",
+  "Why did the developer go broke? He used up all his cache."
+];
+
+const CosmicNLU = {
+  stem(w){ return w.toLowerCase().replace(/[^a-z0-9]/g, "").replace(/(isation|ization|ational|fulness|ousness|iveness|ements|ingly|edly|ation|ition|ments|ness|able|ible|ment|ing|ies|ied|ers|est|ion|ism|ist|ity|ous|ive|ful|less|ly|ed|es|s)$/, ""); },
+  lev(a, b){
+    if (a === b) return 0; if (!a.length) return b.length; if (!b.length) return a.length; if (Math.abs(a.length - b.length) > 3) return 99;
+    const dp = Array.from({ length: a.length + 1 }, (_, i) => i);
+    for (let j = 1; j <= b.length; j++){ let prev = dp[0]; dp[0] = j;
+      for (let i = 1; i <= a.length; i++){ const t = dp[i]; dp[i] = Math.min(dp[i] + 1, dp[i-1] + 1, prev + (a[i-1] === b[j-1] ? 0 : 1)); prev = t; } }
+    return dp[a.length];
+  },
+  findEntry(query){
+    const raw = String(query || "").toLowerCase().trim(); if (!raw) return null;
+    const stop = new Set(["what","how","why","does","explain","tell","about","the","and","for","with","into","from","you","can","are","is"]);
+    const toks = raw.replace(/[^a-z0-9\s'-]/g, " ").split(/\s+/).filter(t => t.length > 2 && !stop.has(t));
+    const stems = toks.map(t => this.stem(t));
+    let best = null, bestScore = 0;
+    for (const e of KG){
+      let score = 0;
+      if (raw.includes(e.title.toLowerCase())) score += 12;
+      for (const kw of e.keywords){
+        if (raw.includes(kw)) { score += kw.includes(" ") ? 9 : 6; continue; }
+        for (const kp of kw.split(/\s+/)){
+          if (kp.length < 3) continue;
+          const ks = this.stem(kp);
+          toks.forEach((t, i) => { if (t === kp || stems[i] === ks) score += 3.2; else if (kp.length >= 5 && this.lev(t, kp) <= 2) score += 2.2; });
+        }
+      }
+      if (score > bestScore) { bestScore = score; best = e; }
+    }
+    return bestScore >= 3.2 ? best : null;
+  },
+
+  extractMemory(raw){
+    const up = [];
+    const BAD = /^(fine|good|great|ready|sorry|sure|here|back|done|happy|tired|hungry|curious|confused|new|ok|okay|well|not|just|trying|working|learning|looking)$/i;
+    let m = raw.match(/\b(?:my name is|call me)\s+([A-Za-z][A-Za-z'-]{1,20})/i);
+    if (!m) m = raw.match(/^(?:hi|hey|hello)?[,!. ]*(?:I'm|I am)\s+([A-Z][a-z]{1,20})[.!]?$/);
+    if (m && !BAD.test(m[1])) { const n = m[1][0].toUpperCase() + m[1].slice(1); memory.name = n; up.push(`Name = ${n}`); }
+    const r = raw.match(/\b(?:i work as|i am a|i'm a|i am an|i'm an)\s+([a-zA-Z0-9\s-]{3,38}?)(?:[.,!?]|$)/i);
+    if (r && !/\b(human|person|user|bot|ai|question|little|bit|fan|beginner|newbie|big|huge|bad|good|great|lot)\b/i.test(r[1])) { memory.role = r[1].trim(); up.push(`Role = ${memory.role}`); }
+    const n = raw.match(/\b(?:remember that|note that|my goal is|i prefer)\s+([^.!?\n]{4,90})/i);
+    if (n){ const note = n[0].trim(); if (!memory.notes.includes(note)) { memory.notes.unshift(note); if (memory.notes.length > 15) memory.notes.pop(); up.push(note); } }
+    if (up.length) saveMemory();
+    return up;
+  },
+
+  classify(raw, chat){
+    const t = raw.trim(), l = t.toLowerCase();
+    if (chat.activeQuiz && /^(?:option\s*)?([abcd])(?:[.)\s]|$)/i.test(t)) return { intent: "quiz_answer", conf: .98, raw: t, lower: l };
+    const sl = (c) => l.startsWith(c);
+    if (sl("/imagine"))   return { intent: "image_gen", conf: .99, raw: t.replace(/^\/imagine\s*/i, ""), lower: l };
+    if (sl("/code"))      return { intent: "code_gen", conf: .99, raw: t.replace(/^\/code\s*/i, ""), lower: l, llmPrompt: "Write clean, well-commented code for this task, then briefly explain it and its complexity: " + t.replace(/^\/code\s*/i, "") };
+    if (sl("/compare"))   return { intent: "comparison", conf: .99, raw: t.replace(/^\/compare\s*/i, ""), lower: l, llmPrompt: "Compare the following in a Markdown table, then give a short recommendation: " + t.replace(/^\/compare\s*/i, "") };
+    if (sl("/plan"))      return { intent: "planner", conf: .99, raw: t.replace(/^\/plan\s*/i, ""), lower: l, llmPrompt: "Create a phased plan with a checklist for: " + t.replace(/^\/plan\s*/i, "") };
+    if (sl("/summarize")) return { intent: "text_transform", conf: .99, raw: "summarize " + t.replace(/^\/summarize\s*/i, ""), lower: l, llmPrompt: "Summarize into clear key takeaways: " + t.replace(/^\/summarize\s*/i, "") };
+    if (sl("/quiz"))      return { intent: "quiz_request", conf: .99, raw: t.replace(/^\/quiz\s*/i, ""), lower: l };
+    if (sl("/memory"))    return { intent: "memory_read", conf: .99, raw: t, lower: l };
+    if (attachment) return { intent: attachment.kind === "image" ? "vision_analysis" : "document_analysis", conf: .96, raw: t, lower: l };
+    if (/^(?:generate|create|draw|render|synthesize|make)\s+(?:an?\s+)?(?:image|art|artwork|picture|illustration|wallpaper|sketch|nebula|landscape|eclipse|geometry)\b/i.test(t)) return { intent: "image_gen", conf: .94, raw: t, lower: l };
+    if (/\b(quiz me|test me|multiple choice|knowledge check)\b/i.test(l)) return { intent: "quiz_request", conf: .93, raw: t, lower: l };
+    if (/\b(what do you remember|show memory|what is my name|what's my name|who am i|my memory)\b/i.test(l)) return { intent: "memory_read", conf: .93, raw: t, lower: l };
+    if (/\b(what(?:'s| is) the (?:time|date)|what time is it|what(?:'s| is) today'?s date|what day is it|tell me a joke|flip a coin|roll a (?:die|dice))\b/i.test(l)) return { intent: "smalltalk", conf: .95, raw: t, lower: l };
+    const mathy = /^(?:solve|calculate|compute|evaluate|convert)\b/i.test(l)
+      || /\b(mean|median|mode|std dev|standard deviation|variance)\s+of\b/i.test(l)
+      || /\bwhat is\s+\d+(?:\.\d+)?%\s+of\b/i.test(l)
+      || (/^\s*[-+*/^()%0-9.\s]+(?:=)?\s*$/.test(t) && /\d/.test(t) && /[+\-*/^%]/.test(t))
+      || (/^(?:what(?:'s| is)|how much is)\s+[\w\s+\-*/^().%,]+\??$/i.test(l) && /\d/.test(l) && (/[+\-*/^%]|sqrt|sin|cos|tan|log/.test(l.replace(/^(?:what(?:'s| is)|how much is)\s+/, ""))))
+      || /\b\d+(?:\.\d+)?\s*(?:mm|cm|m|km|in|ft|yd|mi|mg|g|kg|lb|oz|c|f|k|b|kb|mb|gb|tb|mph|kph|knots)\s+(?:to|in)\s+(?:mm|cm|m|km|in|ft|yd|mi|mg|g|kg|lb|oz|c|f|k|b|kb|mb|gb|tb|mph|kph|knots)\b/i.test(l)
+      || /\b\d*x\s*[+-]\s*\d+\s*=\s*[-+]?\d+/i.test(l);
+    if (mathy) return { intent: "math_solver", conf: .95, raw: t, lower: l };
+    if (/\b(compare|vs\.?|versus|difference between|pros and cons)\b/i.test(l)) return { intent: "comparison", conf: .9, raw: t, lower: l };
+    if (/^(?:plan|roadmap|checklist|steps to|how do i build|how to build|create a plan)\b/i.test(l)) return { intent: "planner", conf: .9, raw: t, lower: l };
+    if (/```[\s\S]+```/.test(t) || (/\b(write|generate|create|build|implement|code|function|script|algorithm|html|css|python|javascript|typescript|sql|rust|c\+\+|java)\b/i.test(l) && /\b(code|function|class|api|page|component|script|query|sort|search|parser|server|app|program)\b/i.test(l)))
+      return { intent: "code_gen", conf: .9, raw: t, lower: l };
+    if (/^(?:rewrite|proofread|summarize|condense|simplify|eli5|make formal|make concise|extract action items)\b/i.test(l)) return { intent: "text_transform", conf: .9, raw: t, lower: l };
+    if (chat.activeTopic && /^(?:go deeper|elaborate|explain simpler|give an analogy|pros and cons|summarize that|why does that matter)\b/i.test(l)) return { intent: "followup_transform", conf: .88, raw: t, lower: l };
+    if (/^(?:hi|hello|hey|yo|sup|good morning|good afternoon|good evening|how are you|what's up|whats up|who are you|thanks|thank you|bye|goodbye)\b[!?. ]*$/i.test(t)) return { intent: "conversational", conf: .95, raw: t, lower: l };
+    return { intent: "knowledge_query", conf: .85, raw: t, lower: l };
+  },
+
+  analyze(raw, chat){ const facts = this.extractMemory(raw); return { facts, nlu: this.classify(raw, chat) }; },
+
+  respond(nlu, facts, chat){
+    let out;
+    switch (nlu.intent){
+      case "conversational": out = this.hConversation(nlu, facts); break;
+      case "smalltalk": out = this.hSmallTalk(nlu); break;
+      case "vision_analysis": out = this.hVision(chat); break;
+      case "document_analysis": out = this.hDocument(nlu, chat); break;
+      case "image_gen": out = this.hImage(nlu, chat); break;
+      case "math_solver": out = this.hMath(nlu); break;
+      case "code_gen": out = this.hCode(nlu, chat); break;
+      case "comparison": out = this.hCompare(nlu, chat); break;
+      case "planner": out = this.hPlan(nlu, chat); break;
+      case "text_transform": out = this.hTransform(nlu); break;
+      case "quiz_request": out = this.hQuizStart(nlu, chat); break;
+      case "quiz_answer": out = this.hQuizAnswer(nlu, chat); break;
+      case "memory_read": out = this.hMemory(); break;
+      case "followup_transform": out = this.hFollowup(nlu, chat); break;
+      default:
+        if (facts.length && !this.findEntry(nlu.raw)){
+          const nm = memory.name ? `, **${memory.name}**` : "";
+          out = { markdown: `Nice to meet you${nm}. I've noted that, so I'll keep it in mind. What would you like to work on?`, notes: ["Acknowledged a personal fact"] };
+        } else out = this.hKnowledge(nlu, chat);
+    }
+    if (facts.length && nlu.intent !== "conversational") out.markdown += `\n\n> *Saved to memory: ${facts.join("; ")}*`;
+    out.spoken = this.spoken(nlu, out, chat);
+    out.reasoning = this.trace(nlu, chat, out.notes || []);
+    return out;
+  },
+
+  hConversation(nlu, facts){
+    const nm = memory.name ? `, **${memory.name}**` : "";
+    if (/\b(who are you|what are you)\b/i.test(nlu.lower))
+      return { markdown: `I'm **Cosmic AI**, an assistant that runs entirely in your browser.\n\n- **Instant** mode: a fast offline engine for math, quizzes, art, file inspection and a concept library.\n- **Smart** mode: a real language model running locally on your GPU for open-ended questions, writing and code.\n- **Voice mode**: talk to me hands-free.`, notes: ["Self-introduction"] };
+    if (/\b(thanks|thank you)\b/i.test(nlu.lower)) return { markdown: `You're welcome${nm}. Anything else you want to dig into?`, notes: ["Gratitude"] };
+    if (/\b(bye|goodbye)\b/i.test(nlu.lower)) return { markdown: `Bye${nm}! Come back anytime.`, notes: ["Farewell"] };
+    if (/\bhow are you\b/i.test(nlu.lower)) return { markdown: `Doing great, thanks for asking${nm}. What are we working on?`, notes: ["Small talk"] };
+    const note = facts.length ? ` Got it — I'll remember that (${facts.join(", ")}).` : "";
+    return { markdown: `Hey${nm}!${note} What would you like to do?`, notes: ["Greeting"] };
+  },
+
+  hSmallTalk(nlu){
+    const l = nlu.lower, now = new Date();
+    if (/time/.test(l)) return { markdown: `It's **${now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}**.`, notes: ["Read local clock"] };
+    if (/date|day/.test(l)) return { markdown: `Today is **${now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric", year: "numeric" })}**.`, notes: ["Read local clock"] };
+    if (/joke/.test(l)) return { markdown: pick(JOKES), notes: ["Picked a joke"] };
+    if (/coin/.test(l)) return { markdown: `It's **${Math.random() < .5 ? "heads" : "tails"}**.`, notes: ["Coin flip"] };
+    return { markdown: `You rolled a **${1 + Math.floor(Math.random() * 6)}**.`, notes: ["Die roll"] };
+  },
+
+  hKnowledge(nlu, chat){
+    const e = this.findEntry(nlu.raw);
+    if (e){
+      chat.activeTopic = e.title;
+      if (prefs.depth === "concise") return { markdown: `### ${e.title}\n\n${e.definition}\n\n**Think of it like this:** ${e.analogy}`, notes: [`Matched '${e.title}'`] };
+      const mech = e.mechanisms.map(m => `- ${m}`).join("\n");
+      const extra = prefs.depth === "detailed"
+        ? `\n\n#### Trade-offs\n${e.tradeoffs}\n\n#### Before you use it\n- Check your scale and boundary assumptions.\n- Benchmark latency, memory and failure behaviour under realistic load.`
+        : `\n\n#### Trade-offs\n${e.tradeoffs}`;
+      return { markdown: `### ${e.title} · *${e.category}*\n\n${e.definition}\n\n#### Mental model\n> ${e.analogy}\n\n#### How it works\n${mech}${extra}`, notes: [`Matched '${e.title}' (${e.category})`] };
+    }
+    if (/^(?:i'm|i am|i feel|i'm feeling)\b/i.test(nlu.raw) && !/\?/.test(nlu.raw))
+      return { markdown: `Got it. I'm happy to chat about it, though in Instant mode I'm limited to a fixed set of skills. Switch to **Cosmic-1 Smart** for a fuller conversation, or ask me something specific.`, notes: ["Statement, not a question"] };
+    return { markdown: `I don't have a reliable answer for that in my offline notes, and I'd rather not make something up.\n\nSwitch the model at the top-left to **Cosmic-1 Smart** to get a real local language model for open-ended questions, writing and code. In Instant mode I can still do math and unit conversions, quizzes, procedural art, comparisons, plans, file inspection, and explain the ${KG.length} concepts in my library (try *explain transformers* or *what is the CAP theorem*).`, notes: ["No knowledge match", "Declined to fabricate; suggested Smart mode"] };
+  },
+
+  hFollowup(nlu, chat){
+    const e = this.findEntry(chat.activeTopic || "");
+    if (e && /\b(simpler|analogy)\b/.test(nlu.lower)) return { markdown: `### ${e.title}, simply\n\n> ${e.analogy}\n\nIn short: ${e.definition}`, notes: ["Resolved follow-up to active topic"] };
+    if (e && /\bpros and cons\b/.test(nlu.lower)) return { markdown: `### ${e.title}: strengths and trade-offs\n\n- **Strength:** ${e.mechanisms[0]}\n- **Also:** ${e.mechanisms[1] || e.definition}\n- **Trade-off:** ${e.tradeoffs}`, notes: ["Resolved follow-up to active topic"] };
+    return this.hKnowledge({ ...nlu, raw: `explain ${chat.activeTopic || ""}` }, chat);
+  },
+
+  hCompare(nlu, chat){
+    const c = nlu.raw.replace(/^(?:compare|what is the difference between|differences between|pros and cons of)\s+/i, "").replace(/[?.!]+$/, "").trim();
+    const p = c.split(/\s+(?:vs\.?|versus|and|or)\s+/i).map(s => s.trim()).filter(Boolean);
+    const A = p[0] || "Option A", B = p[1] || "Option B";
+    chat.activeTopic = `${A} vs ${B}`;
+    const ea = this.findEntry(A), eb = this.findEntry(B);
+    if (!ea && !eb) return { markdown: `I can build a reliable comparison for topics in my library (like *REST vs GraphQL*, *BFS vs DFS*, *CAP theorem*). For **${A}** vs **${B}**, switch to **Cosmic-1 Smart** and I'll compare them properly.`, notes: ["No entries for either side"] };
+    const row = (e, k) => e ? e[k] : "Not in my offline notes";
+    return { markdown: `### ${A} vs. ${B}\n\n| | ${A} | ${B} |\n| :--- | :--- | :--- |\n| **What it is** | ${row(ea,"definition")} | ${row(eb,"definition")} |\n| **Mental model** | ${row(ea,"analogy")} | ${row(eb,"analogy")} |\n| **Trade-offs** | ${row(ea,"tradeoffs")} | ${row(eb,"tradeoffs")} |`, notes: [`Compared '${A}' and '${B}' from the concept library`] };
+  },
+
+  hPlan(nlu, chat){
+    const g = nlu.raw.replace(/^(?:plan|roadmap|checklist|steps to|how do i build|how to build|create a plan for)\s+/i, "").replace(/[?.!]+$/, "").trim() || "your project";
+    const T = g[0].toUpperCase() + g.slice(1);
+    chat.activeTopic = `Plan: ${T}`;
+    return { markdown: `### Plan: ${T}\n\n#### Phase 1 — Define (days 1–2)\n- [ ] Write the goal, success metric and non-goals.\n- [ ] List constraints, risks and what you already have.\n- [ ] Sketch the simplest version that could work.\n\n#### Phase 2 — Build a thin slice (days 3–6)\n- [ ] Make the core workflow work end to end.\n- [ ] Handle bad input and failure cases.\n- [ ] Test with real examples.\n\n#### Phase 3 — Improve (days 7–9)\n- [ ] Measure speed and quality; fix the biggest bottleneck.\n- [ ] Polish the experience and write short docs.\n\n#### Phase 4 — Ship (day 10)\n- [ ] Final regression pass, release, and note what to do next.\n\n*This is a generic template. Switch to **Cosmic-1 Smart** for a plan tailored to ${g}.*`, notes: [`Template plan for '${T}'`] };
+  },
+
+  hTransform(nlu){
+    const body = nlu.raw.replace(/^(?:rewrite|proofread|summarize|condense|simplify|eli5|make formal|make concise|extract action items)[:\s-]*/i, "").trim();
+    const att = attachment && attachment.kind === "file" ? attachment.rawContent : "";
+    const text = body || att;
+    if (!text) return { markdown: "Paste the text (or attach a file) you'd like me to summarize or extract action items from.", notes: ["Empty payload"] };
+    const s = text.split(/(?<=[.!?])\s+/).map(x => x.trim()).filter(Boolean);
+    if (/action items/i.test(nlu.lower)) return { markdown: `### Action items\n\n${s.slice(0, 6).map(x => `- [ ] ${x}`).join("\n")}`, notes: [`${s.length} sentences`] };
+    const pickN = Math.min(4, Math.max(1, Math.ceil(s.length * .5)));
+    return { markdown: `### Summary\n\n${s.slice(0, pickN).map(x => `- ${x}`).join("\n")}\n\n*Extractive summary: it keeps the opening sentences. Switch to **Cosmic-1 Smart** for a true abstractive one.*`, notes: [`Kept ${pickN} of ${s.length} sentences`] };
+  },
+
+  hMath(nlu){
+    const raw = nlu.raw, lower = nlu.lower;
+    const st = lower.match(/\b(mean|average|median|mode|std dev|standard deviation|variance|stats|statistics)\b.*?(?:of|:)\s*([0-9.,\s-]+)/i);
+    if (st){
+      const nums = st[2].split(/[\s,]+/).map(Number).filter(n => !Number.isNaN(n) && n === n);
+      if (nums.length){
+        const sorted = [...nums].sort((a, b) => a - b), n = nums.length, sum = nums.reduce((a, b) => a + b, 0), mean = sum / n;
+        const med = n % 2 ? sorted[(n-1)/2] : (sorted[n/2-1] + sorted[n/2]) / 2;
+        const v = nums.reduce((a, x) => a + (x - mean) ** 2, 0) / n;
+        const f = {}; let mf = 0; nums.forEach(x => { f[x] = (f[x] || 0) + 1; mf = Math.max(mf, f[x]); });
+        const modes = mf > 1 ? Object.keys(f).filter(k => f[k] === mf).join(", ") : "none (all unique)";
+        const r = x => Number(x.toFixed(6));
+        return { markdown: `### Statistics (n = ${n})\n\n| Metric | Value |\n| :--- | :--- |\n| Sum | \`${r(sum)}\` |\n| Mean | \`${r(mean)}\` |\n| Median | \`${r(med)}\` |\n| Mode | \`${modes}\` |\n| Min / Max | \`${sorted[0]}\` / \`${sorted[n-1]}\` |\n| Variance (population) | \`${r(v)}\` |\n| Std deviation | \`${r(Math.sqrt(v))}\` |`, notes: [`Parsed ${n} numbers`] };
+      }
+    }
+    const eq = raw.replace(/\s+/g, "").match(/^([+-]?\d*(?:\.\d+)?)x([+-]\d+(?:\.\d+)?)?=([+-]?\d+(?:\.\d+)?)$/i);
+    if (eq){
+      const a = eq[1] === "" || eq[1] === "+" ? 1 : eq[1] === "-" ? -1 : parseFloat(eq[1]), b = eq[2] ? parseFloat(eq[2]) : 0, c = parseFloat(eq[3]);
+      if (a === 0) return { markdown: "No unique solution — the coefficient of x is 0.", notes: ["Degenerate equation"] };
+      const x = (c - b) / a;
+      return { markdown: `### Solution\n\n\`${raw.trim()}\`\n\n1. Move the constant: \`${a}x = ${Number((c - b).toFixed(6))}\`\n2. Divide by ${a}: **x = ${Number(x.toFixed(6))}**`, notes: ["Solved linear equation"] };
+    }
+    const pc = lower.match(/(\d+(?:\.\d+)?)\s*%\s*of\s*(\d+(?:\.\d+)?)/);
+    if (pc){ const a = parseFloat(pc[1]) / 100 * parseFloat(pc[2]); return { markdown: `**${pc[1]}%** of **${pc[2]}** = **\`${Number(a.toFixed(6))}\`**`, notes: ["Percentage"] }; }
+    const un = lower.match(/(-?\d+(?:\.\d+)?)\s*(mm|cm|m|km|in|ft|yd|mi|mg|g|kg|lb|oz|c|f|k|b|kb|mb|gb|tb|mph|kph|knots)\s+(?:to|in)\s+(mm|cm|m|km|in|ft|yd|mi|mg|g|kg|lb|oz|c|f|k|b|kb|mb|gb|tb|mph|kph|knots)\b/);
+    if (un){ const val = parseFloat(un[1]), res = this.convert(val, un[2], un[3]); if (res !== null) return { markdown: `\`${val} ${un[2]}\` = **\`${Number(res.toFixed(6))} ${un[3]}\`**`, notes: ["Unit conversion"] }; }
+    const expr = raw.replace(/^(?:solve|calculate|compute|evaluate|what(?:'s| is)|how much is)\s+/i, "").replace(/[=?]/g, "").trim();
+    const val = this.safeMath(expr);
+    if (val !== null && Number.isFinite(val)) return { markdown: `\`${expr}\` = **\`${Number(val.toFixed(10))}\`**`, notes: ["Recursive-descent parser (no eval)"] };
+    return { markdown: "I couldn't parse that. Try arithmetic like `(144 / 12) + 3^4`, `sin(pi/2) + sqrt(81)`, `mean of 10, 20, 35`, `3x + 7 = 22`, or `42 km to mi`.", notes: ["Parse failed"] };
+  },
+
+  convert(v, from, to){
+    if (from === to) return v;
+    if (["c","f","k"].includes(from) && ["c","f","k"].includes(to)){
+      const c = from === "c" ? v : from === "f" ? (v - 32) * 5 / 9 : v - 273.15;
+      return to === "c" ? c : to === "f" ? c * 9 / 5 + 32 : c + 273.15;
+    }
+    const cats = { len: { mm: .001, cm: .01, m: 1, km: 1000, in: .0254, ft: .3048, yd: .9144, mi: 1609.344 }, mass: { mg: 1e-6, g: .001, kg: 1, lb: .45359237, oz: .028349523125 }, data: { b: 1, kb: 1024, mb: 1048576, gb: 1073741824, tb: 1099511627776 }, speed: { kph: 1 / 3.6, mph: .44704, knots: .514444 } };
+    for (const c of Object.values(cats)) if (from in c && to in c) return v * c[from] / c[to];
+    return null;
+  },
+
+  safeMath(expr){
+    try {
+      const s = expr.replace(/\bpi\b/gi, String(Math.PI)).replace(/\be\b/g, String(Math.E)).replace(/\s+/g, "");
+      if (!s || !/^[0-9+\-*/%^().,a-zA-Z!]+$/.test(s)) return null;
+      let p = 0; const pk = () => s[p] || "", eat = () => s[p++];
+      const FN = { sqrt: Math.sqrt, sin: Math.sin, cos: Math.cos, tan: Math.tan, asin: Math.asin, acos: Math.acos, atan: Math.atan, log: Math.log10, ln: Math.log, abs: Math.abs, round: Math.round, floor: Math.floor, ceil: Math.ceil };
+      const expr_ = () => { let l = term(); while (pk() === "+" || pk() === "-"){ const o = eat(), r = term(); l = o === "+" ? l + r : l - r; } return l; };
+      const term = () => { let l = unary(); while (pk() === "*" || pk() === "/" || pk() === "%"){ const o = eat(), r = unary(); l = o === "*" ? l * r : o === "/" ? l / r : l % r; } return l; };
+      const unary = () => { if (pk() === "+"){ eat(); return unary(); } if (pk() === "-"){ eat(); return -unary(); } return power(); };
+      const power = () => { const b = postfix(); if (pk() === "^"){ eat(); return Math.pow(b, unary()); } return b; };
+      const postfix = () => { let v = primary(); while (pk() === "!"){ eat(); if (v < 0 || v > 170 || Math.floor(v) !== v) return NaN; let f = 1; for (let i = 2; i <= v; i++) f *= i; v = f; } return v; };
+      const primary = () => {
+        if (pk() === "("){ eat(); const v = expr_(); if (eat() !== ")") return NaN; return v; }
+        if (/[a-zA-Z]/.test(pk())){ let fn = ""; while (/[a-zA-Z]/.test(pk())) fn += eat(); if (eat() !== "(") return NaN; const a = expr_(); if (eat() !== ")") return NaN; const f = FN[fn.toLowerCase()]; return f ? f(a) : NaN; }
+        let n = ""; while (/[0-9.]/.test(pk())) n += eat(); return n ? parseFloat(n) : NaN;
+      };
+      const r = expr_(); return p === s.length ? r : null;
+    } catch(e){ return null; }
+  },
+
+  hCode(nlu, chat){
+    const m = nlu.raw.match(/```([\w+-]*)\n([\s\S]*?)```/);
+    if (m){
+      const lang = m[1] || "code", code = m[2], lines = code.split("\n").length, issues = [];
+      if (/\beval\s*\(/.test(code)) issues.push("**Security:** avoid `eval()`; it can run arbitrary code.");
+      if (/innerHTML\s*=/.test(code)) issues.push("**XSS risk:** sanitize untrusted strings before assigning `innerHTML`.");
+      if (/\bvar\b/.test(code) && /^(js|javascript|ts|typescript)$/i.test(lang)) issues.push("**Modernize:** prefer `const`/`let` over `var`.");
+      if (/SELECT\s+\*/i.test(code)) issues.push("**Query:** list the columns you need instead of `SELECT *`.");
+      if (/==[^=]/.test(code) && /^(js|javascript|ts|typescript)$/i.test(lang)) issues.push("**Equality:** prefer `===` over `==`.");
+      return { markdown: `### Quick static review (${lang} · ${lines} lines)\n\n${issues.length ? issues.map(i => `- ${i}`).join("\n") : "- No obvious anti-patterns found by my simple scan."}\n\n*This is a lightweight pattern check. Switch to **Cosmic-1 Smart** for a real code review.*`, notes: [`Scanned ${lines} lines`] };
+    }
+    return { markdown: `Writing new code needs a real language model. Switch the model (top-left) to **Cosmic-1 Smart** and ask again — it runs locally on your GPU.\n\nIn Instant mode I can review code you paste inside a fenced code block.`, notes: ["Code generation requires Smart mode"] };
+  },
+
+  hQuizStart(nlu, chat){
+    const hint = nlu.raw.replace(/^(?:\/quiz|quiz me on|test me on|quiz about|quiz)\s*/i, "").trim();
+    const e = this.findEntry(hint) || (chat.activeTopic ? this.findEntry(chat.activeTopic) : null) || pick(KG);
+    const others = KG.filter(x => x.id !== e.id).sort(() => Math.random() - .5).slice(0, 3);
+    const opts = [{ t: e.definition, ok: true }, ...others.map(o => ({ t: o.definition, ok: false }))].sort(() => Math.random() - .5);
+    const L = ["A","B","C","D"];
+    chat.activeTopic = e.title;
+    chat.activeQuiz = { topic: e.title, question: `Which statement correctly defines **${e.title}**?`, options: opts.map(o => o.t), correct: L[opts.findIndex(o => o.ok)], explanation: e.analogy };
+    return { markdown: `### Quick check: ${e.title}\n\n${chat.activeQuiz.question}\n\n${opts.map((o, i) => `- **${L[i]}.** ${o.t}`).join("\n")}`, isQuiz: true, notes: [`Quiz on '${e.title}'`] };
+  },
+
+  hQuizAnswer(nlu, chat){
+    const q = chat.activeQuiz, ch = (nlu.raw.trim().match(/^(?:option\s*)?([abcd])/i) || [,""])[1].toUpperCase();
+    const ok = ch === q.correct;
+    chat.quizStats = chat.quizStats || { answered: 0, correct: 0 };
+    chat.quizStats.answered++; if (ok) chat.quizStats.correct++;
+    const score = `Score: **${chat.quizStats.correct} / ${chat.quizStats.answered}**`;
+    chat.activeQuiz = null;
+    if (ok) return { markdown: `### Correct — ${ch}\n\nThat's right. **Mental model:** ${q.explanation}\n\n${score}`, notes: ["Correct"] };
+    return { markdown: `### Not quite — you picked ${ch}\n\nThe answer was **${q.correct}**:\n> ${q.options["ABCD".indexOf(q.correct)]}\n\n**Mental model:** ${q.explanation}\n\n${score}`, notes: ["Incorrect"] };
+  },
+
+  hMemory(){
+    const it = [];
+    if (memory.name) it.push(`- **Name:** ${memory.name}`);
+    if (memory.role) it.push(`- **Role:** ${memory.role}`);
+    memory.notes.forEach(n => it.push(`- ${n}`));
+    if (!it.length) return { markdown: "### Memory\n\nNothing stored yet. Tell me *\"My name is Alex\"* or *\"Remember that I prefer TypeScript\"*, or add facts in **Settings**.", notes: ["0 entries"] };
+    return { markdown: `### What I remember (${it.length})\n\n${it.join("\n")}`, notes: [`${it.length} entries`] };
+  },
+
+  hVision(chat){
+    const a = attachment; chat.activeTopic = `Image: ${a.name}`;
+    const s = a.stats, g = (x, y) => y ? g(y, x % y) : x, d = g(a.width, a.height);
+    const key = s.avgLum < 85 ? "dark / low-key" : s.avgLum > 170 ? "bright / high-key" : "balanced mid-key";
+    const con = s.rms > 65 ? "high contrast" : s.rms > 35 ? "moderate contrast" : "soft, low contrast";
+    return { markdown: `### Image analysis — \`${a.name}\`\n\nI can't *see* images (my language model is text-only), but here is what I measured from the pixels:\n\n| Metric | Value |\n| :--- | :--- |\n| Size | ${a.width} × ${a.height} px (${Math.round(a.width/d)}:${Math.round(a.height/d)}) |\n| Mean brightness | ${s.avgLum.toFixed(1)} / 255 (${key}) |\n| Contrast (RMS) | ${s.rms.toFixed(1)} (${con}) |\n| Edge density | ${s.edge.toFixed(1)}% |\n| Shadows / mids / highlights | ${s.sh}% / ${s.mid}% / ${s.hi}% |`, notes: [`Analyzed ${a.width}x${a.height} pixels locally`] };
+  },
+
+  hDocument(nlu, chat){
+    const a = attachment; chat.activeTopic = `File: ${a.name}`;
+    if (a.csv){
+      const c = a.csv;
+      const stats = c.stats.length ? `\n\n#### Numeric columns\n| Column | Valid | Min | Max | Mean | Median |\n| :--- | :--- | :--- | :--- | :--- | :--- |\n${c.stats.map(n => `| ${n.col} | ${n.count} | ${n.min} | ${n.max} | ${n.mean.toFixed(2)} | ${n.median.toFixed(2)} |`).join("\n")}` : "";
+      return { markdown: `### CSV — \`${a.name}\`\n\n**${c.rows}** rows · **${c.headers.length}** columns (\`${c.headers.join("`, `")}\`)\n\n#### First rows\n${c.preview}${stats}`, notes: [`Parsed ${c.rows} rows`] };
+    }
+    if (a.json){
+      const j = a.json;
+      return { markdown: `### JSON — \`${a.name}\`\n\n- **Root:** \`${j.root}\` · **Entries:** ${j.count} · **Depth:** ${j.depth}\n- **Keys:** \`${j.keys}\`\n\n\`\`\`json\n${j.snippet}\n\`\`\``, notes: ["Parsed JSON"] };
+    }
+    const lines = a.rawContent.split("\n"), words = a.rawContent.trim().split(/\s+/).filter(Boolean).length;
+    const defs = (a.rawContent.match(/\b(?:function|class|def|const|interface|struct)\s+([A-Za-z0-9_]+)/g) || []).slice(0, 8);
+    const terms = nlu.lower.split(/\s+/).filter(w => w.length > 3 && !["this","file","what","does","explain","summarize","about","analyze","attached"].includes(w));
+    const hits = (terms.length ? lines.filter(l => terms.some(t => l.toLowerCase().includes(t))) : lines.filter(l => l.trim())).slice(0, 5);
+    return { markdown: `### File — \`${a.name}\`\n\n${lines.length} lines · ${words} words · ${a.size}${defs.length ? `\n- **Definitions:** \`${defs.join("`, `")}\`` : ""}\n\n#### Relevant lines\n${hits.map(l => `> ${l.trim().slice(0, 140)}`).join("\n") || "> *(empty)*"}\n\n*Switch to **Cosmic-1 Smart** to ask questions about this file's contents.*`, notes: [`${lines.length} lines`] };
+  },
+
+  hImage(nlu, chat){
+    const prompt = nlu.raw.replace(/^(?:generate|create|draw|render|synthesize|make)\s+(?:an?\s+)?(?:image|art|artwork|picture|illustration|wallpaper|sketch)\s*(?:of|showing|depicting)?\s*/i, "").trim() || "Deep space nebula";
+    const l = prompt.toLowerCase();
+    let style = "nebula";
+    if (/\b(topographic|contour|map|terrain|mountain|elevation)\b/.test(l)) style = "topographic";
+    else if (/\b(geometry|sacred|mandala|polygon|fractal|spiral)\b/.test(l)) style = "geometry";
+    else if (/\b(wave|interference|ripple|oscilloscope|sound|frequency)\b/.test(l)) style = "waves";
+    else if (/\b(eclipse|sun|moon|corona|ring|horizon)\b/.test(l)) style = "eclipse";
+    const seed = Math.floor(Math.random() * 900000) + 100000;
+    const labels = { nebula: "Deep space nebula", topographic: "Topographic contours", geometry: "Sacred geometry", waves: "Wave interference", eclipse: "Eclipse" };
+    chat.activeTopic = `Art: ${prompt}`;
+    return { markdown: `### Cosmic Canvas\n\n**${labels[style]}** · seed \`#${seed}\` for *"${prompt}"*.`, imageDataUrl: drawArt(style, seed), imageMeta: { style, seed, prompt, label: labels[style] }, notes: [`Style '${style}', seed ${seed}`] };
+  },
+
+  spoken(nlu, out, chat){
+    const n = memory.name ? `, ${memory.name}` : "";
+    if (nlu.intent === "conversational" || nlu.intent === "smalltalk" || nlu.intent === "memory_read") return toSpeech(out.markdown);
+    if (nlu.intent === "quiz_request" && chat.activeQuiz){
+      const L = ["A","B","C","D"];
+      return `Okay${n}, quick question on ${chat.activeQuiz.topic}. ${toSpeech(chat.activeQuiz.question)} ` + chat.activeQuiz.options.map((o, i) => `Option ${L[i]}: ${toSpeech(o)}`).join(" ") + " Which one do you think it is?";
+    }
+    const e = (nlu.intent === "knowledge_query" || nlu.intent === "followup_transform") ? (this.findEntry(nlu.raw) || this.findEntry(chat.activeTopic || "")) : null;
+    if (e) return `${pick(["Sure.","Okay, so","Good question.","Alright,"])} ${toSpeech(e.definition)} A good way to picture it: ${toSpeech(e.analogy)} Want me to go deeper?`;
+    return splitSentences(toSpeech(out.markdown)).slice(0, 3).join(" ") || "I've put the details on your screen.";
+  },
+
+  trace(nlu, chat, notes){
+    return [`• Model: ${MODELS[prefs.model].label} (rules engine)`, `• Depth: ${prefs.depth}`, `• Intent: ${nlu.intent} (${Math.round(nlu.conf * 100)}% confidence)`, chat.activeTopic ? `• Topic: ${chat.activeTopic}` : null, ...notes.map(n => `• ${n}`)].filter(Boolean).join("\n");
+  }
+};
+
+/* ======================================================================
+   6. PROCEDURAL ART
+   ====================================================================== */
+function drawArt(style, seed){
+  const w = 800, h = 500, cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+  const ctx = cv.getContext("2d");
+  let s = seed >>> 0;
+  const rand = () => { s += 0x6D2B79F5; let t = Math.imul(s ^ (s >>> 15), 1 | s); t ^= t + Math.imul(t ^ (t >>> 7), 61 | t); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, w, h);
+  if (style === "topographic"){
+    const f = [{ x: .008 + rand() * .005, y: .009 + rand() * .005, p: rand() * 6.28 }, { x: .015 + rand() * .006, y: .014 + rand() * .006, p: rand() * 6.28 }];
+    const el = (x, y) => Math.sin(x * f[0].x + f[0].p) * Math.cos(y * f[0].y) + .55 * Math.sin(x * f[1].x - y * f[1].y + f[1].p);
+    for (let l = 0; l < 18; l++){
+      const th = -1.4 + (l / 18) * 2.8, lum = Math.floor(55 + (l / 18) * 185);
+      ctx.fillStyle = `rgb(${lum},${lum},${lum})`;
+      for (let y = 0; y < h; y += 3) for (let x = 0; x < w; x += 3) if (Math.abs(el(x, y) - th) < .032) ctx.fillRect(x, y, 2, 2);
+    }
+  } else if (style === "geometry"){
+    const cx = w / 2, cy = h / 2;
+    for (let r = 30; r <= 220; r += 26){ ctx.strokeStyle = r % 52 === 0 ? "#fff" : "#525252"; ctx.lineWidth = r % 52 === 0 ? 1.5 : .9; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.2832); ctx.stroke(); }
+    const sides = 6 + Math.floor(rand() * 4);
+    for (let L = 0; L < 4; L++){
+      const R = 70 + L * 42, rot = L * Math.PI / sides + rand() * .4;
+      ctx.strokeStyle = L % 2 ? "#737373" : "#e5e5e5"; ctx.lineWidth = 1.2; ctx.beginPath();
+      for (let i = 0; i <= sides; i++){ const a = rot + i * 6.2832 / sides; const px = cx + Math.cos(a) * R, py = cy + Math.sin(a) * R; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+      ctx.stroke();
+    }
+  } else if (style === "waves"){
+    const a = { x: w * (.3 + rand() * .15), y: h * (.35 + rand() * .3) }, b = { x: w * (.55 + rand() * .15), y: h * (.35 + rand() * .3) }, k = .09 + rand() * .05;
+    const img = ctx.createImageData(w, h), d = img.data;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++){
+      const amp = (Math.sin(Math.hypot(x - a.x, y - a.y) * k) + Math.sin(Math.hypot(x - b.x, y - b.y) * k)) * .5;
+      const lum = Math.max(0, Math.min(255, Math.floor((amp * .5 + .5) * 235))), i = (y * w + x) * 4;
+      d[i] = d[i+1] = d[i+2] = lum; d[i+3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+  } else if (style === "eclipse"){
+    const cx = w / 2, cy = h * .46, r = 74;
+    for (let i = 0; i < 240; i++){
+      const an = rand() * 6.2832, len = r + 25 + rand() * 145;
+      ctx.strokeStyle = `rgba(255,255,255,${(.08 + rand() * .35).toFixed(2)})`; ctx.lineWidth = .8 + rand() * 1.4;
+      ctx.beginPath(); ctx.moveTo(cx + Math.cos(an) * r, cy + Math.sin(an) * r); ctx.lineTo(cx + Math.cos(an + (rand() - .5) * .15) * len, cy + Math.sin(an + (rand() - .5) * .15) * len); ctx.stroke();
+    }
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(cx, cy, r + 1.5, 0, 6.2832); ctx.stroke();
+    ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.2832); ctx.fill();
+  } else {
+    for (let i = 0; i < 420; i++){ const lum = Math.floor(110 + rand() * 145); ctx.fillStyle = `rgb(${lum},${lum},${lum})`; const sr = rand() < .85 ? .9 : 1.8; ctx.fillRect(rand() * w, rand() * h, sr, sr); }
+    for (let c = 0; c < 95; c++){ ctx.fillStyle = "rgba(255,255,255,0.032)"; ctx.beginPath(); ctx.arc(w * .2 + rand() * w * .6, h * .2 + rand() * h * .6, 18 + rand() * 52, 0, 6.2832); ctx.fill(); }
+    const px = w * (.48 + (rand() - .5) * .16), py = h * (.5 + (rand() - .5) * .12), pr = 46;
+    ctx.strokeStyle = "#d4d4d4"; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(px, py, pr * 2.35, pr * .55, -.32, 0, 6.2832); ctx.stroke();
+    ctx.fillStyle = "#141414"; ctx.beginPath(); ctx.arc(px, py, pr, 0, 6.2832); ctx.fill(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.6; ctx.stroke();
+  }
+  ctx.fillStyle = "rgba(0,0,0,.72)"; ctx.fillRect(14, h - 32, 250, 20);
+  ctx.fillStyle = "#a3a3a3"; ctx.font = "11px monospace"; ctx.fillText(`COSMIC CANVAS · ${style.toUpperCase()} · #${seed}`, 22, h - 18);
+  return cv.toDataURL("image/png");
+}
+
+function regenArt(i){
+  const chat = getChat(); const m = chat && chat.messages[i]; if (!m || !m.imageMeta) return;
+  const seed = Math.floor(Math.random() * 900000) + 100000;
+  m.imageMeta = { ...m.imageMeta, seed };
+  m.imageDataUrl = drawArt(m.imageMeta.style, seed);
+  m.text = m.fullText = `### Cosmic Canvas\n\n**${m.imageMeta.label}** · seed \`#${seed}\` for *"${m.imageMeta.prompt}"*.`;
+  saveChats(); renderThread(); toast(`New variation #${seed}`);
+}
+
+/* ======================================================================
+   7. ATTACHMENTS
+   ====================================================================== */
+function onFilePicked(e){ const f = e.target.files && e.target.files[0]; if (f) attachFile(f); e.target.value = ""; }
+
+function attachFile(file){
+  const size = file.size < 1024 ? `${file.size} B` : file.size < 1048576 ? `${(file.size / 1024).toFixed(1)} KB` : `${(file.size / 1048576).toFixed(2)} MB`;
+  const rd = new FileReader();
+  if (file.type.startsWith("image/")){
+    rd.onload = ev => {
+      const url = ev.target.result, img = new Image();
+      img.onload = () => {
+        const sw = Math.min(img.naturalWidth, 200), sh = Math.max(1, Math.round(img.naturalHeight / img.naturalWidth * sw));
+        const cv = document.createElement("canvas"); cv.width = sw; cv.height = sh;
+        const cx = cv.getContext("2d"); cx.drawImage(img, 0, 0, sw, sh);
+        const px = cx.getImageData(0, 0, sw, sh).data, lums = new Float32Array(sw * sh);
+        let sh_ = 0, mid = 0, hi = 0, sum = 0;
+        for (let i = 0, p = 0; i < px.length; i += 4, p++){ const l = .2126 * px[i] + .7152 * px[i+1] + .0722 * px[i+2]; lums[p] = l; sum += l; if (l < 85) sh_++; else if (l < 170) mid++; else hi++; }
+        const tot = lums.length || 1, avg = sum / tot; let sq = 0, edge = 0;
+        for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++){ const i = y * sw + x; sq += (lums[i] - avg) ** 2; if (x < sw - 1 && Math.abs(lums[i] - lums[i+1]) > 28) edge++; }
+        const pS = Math.round(sh_ / tot * 100), pM = Math.round(mid / tot * 100);
+        attachment = { kind: "image", name: file.name || "pasted-image.png", size, dataUrl: url, width: img.naturalWidth, height: img.naturalHeight,
+          stats: { avgLum: avg, rms: Math.sqrt(sq / tot), edge: edge / tot * 100, sh: pS, mid: pM, hi: Math.max(0, 100 - pS - pM) } };
+        renderAttachment();
+      };
+      img.src = url;
+    };
+    rd.readAsDataURL(file); return;
+  }
+  rd.onload = ev => {
+    const text = String(ev.target.result || ""), ext = (file.name.split(".").pop() || "txt").toLowerCase();
+    attachment = { kind: "file", fileType: ext, name: file.name, size, rawContent: text.slice(0, 80000), csv: ext === "csv" ? parseCsv(text) : null, json: ext === "json" ? parseJson(text) : null };
+    renderAttachment();
+  };
+  rd.readAsText(file);
+}
+
+function parseCsv(text){
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (!lines.length) return { rows: 0, headers: [], preview: "", stats: [] };
+  const row = r => { const out = []; let cur = "", q = false; for (const ch of r){ if (ch === '"') q = !q; else if (ch === "," && !q){ out.push(cur.trim()); cur = ""; } else cur += ch; } out.push(cur.trim()); return out; };
+  const headers = row(lines[0]), rows = lines.slice(1).map(row);
+  const cell = v => String(v || "").replace(/\|/g, "\\|");
+  const preview = `| ${headers.map(cell).join(" | ")} |\n| ${headers.map(() => ":---").join(" | ")} |\n` + rows.slice(0, 5).map(r => `| ${headers.map((_, i) => cell(r[i])).join(" | ")} |`).join("\n");
+  const stats = [];
+  headers.forEach((col, ci) => {
+    const v = rows.map(r => parseFloat(r[ci])).filter(x => !Number.isNaN(x));
+    if (v.length >= Math.max(2, rows.length * .5)){
+      const so = [...v].sort((a, b) => a - b);
+      stats.push({ col, count: v.length, min: so[0], max: so[so.length-1], mean: v.reduce((a, b) => a + b, 0) / v.length, median: so.length % 2 ? so[(so.length-1)/2] : (so[so.length/2-1] + so[so.length/2]) / 2 });
+    }
+  });
+  return { rows: rows.length, headers, preview, stats };
+}
+function parseJson(text){
+  try {
+    const o = JSON.parse(text), arr = Array.isArray(o), sample = arr ? (o[0] || {}) : o;
+    const depth = (x, d = 1) => (!x || typeof x !== "object" || d > 12) ? d : Math.max(d, ...(Array.isArray(x) ? x.slice(0, 10) : Object.values(x).slice(0, 10)).map(v => depth(v, d + 1)));
+    return { root: arr ? "Array" : typeof o, count: arr ? o.length : (o && typeof o === "object" ? Object.keys(o).length : 1), depth: depth(o), keys: sample && typeof sample === "object" ? Object.keys(sample).slice(0, 10).join(", ") : "", snippet: JSON.stringify(o, null, 2).slice(0, 900) };
+  } catch(e){ return { root: "Invalid JSON", count: 0, depth: 0, keys: e.message, snippet: text.slice(0, 500) }; }
+}
+function renderAttachment(){
+  const box = $("attachPreview");
+  if (!attachment){ box.classList.add("hidden"); updateSendBtn(); return; }
+  box.classList.remove("hidden");
+  $("attachTitle").textContent = attachment.name;
+  if (attachment.kind === "image"){
+    $("attachThumb").src = attachment.dataUrl; $("attachThumb").classList.remove("hidden"); $("attachIcon").classList.add("hidden");
+    $("attachMeta").textContent = `${attachment.width} × ${attachment.height} · ${attachment.size}`;
+  } else {
+    $("attachThumb").classList.add("hidden"); $("attachIcon").classList.remove("hidden");
+    $("attachIcon").textContent = (attachment.fileType || "file").toUpperCase().slice(0, 4);
+    $("attachMeta").textContent = `${attachment.size} · read locally`;
+  }
+  updateSendBtn();
+}
+function clearAttachment(){ attachment = null; renderAttachment(); }
+
+/* ======================================================================
+   8. LOCAL LLM (WebLLM, runs on-device via WebGPU)
+   ====================================================================== */
+const LLM = {
+  engine: null, loadedId: null, loading: false,
+  supported(){ return !!navigator.gpu; },
+  ready(){ const m = MODELS[prefs.model]; return !!(this.engine && m && m.id && this.loadedId === m.id); },
+  async ensure(key){
+    const m = MODELS[key]; if (!m || !m.id) return false;
+    if (this.engine && this.loadedId === m.id) return true;
+    if (this.loading) return false;
+    if (!this.supported()){ toast("Smart mode needs WebGPU (recent Chrome or Edge). Staying on Instant."); setModel("instant", true); return false; }
+    this.loading = true; showLoader(0, `Preparing ${m.label}…`);
+    try {
+      const web = await import("https://esm.run/@mlc-ai/web-llm");
+      if (this.engine){ try { await this.engine.unload(); } catch(e){} this.engine = null; this.loadedId = null; }
+      this.engine = await web.CreateMLCEngine(m.id, { initProgressCallback: p => showLoader(p.progress, p.text) });
+      this.loadedId = m.id; hideLoader(); toast(`${m.label} is ready`); renderModelMenu();
+      return true;
+    } catch(e){
+      console.error(e); hideLoader(); this.engine = null; this.loadedId = null;
+      toast("Couldn't load the local model. Using Instant mode."); setModel("instant", true);
+      return false;
+    } finally { this.loading = false; }
+  },
+  async *generate(messages){
+    const max = prefs.depth === "detailed" ? 1100 : prefs.depth === "concise" ? 320 : 720;
+    const it = await this.engine.chat.completions.create({ messages, stream: true, temperature: .7, top_p: .9, max_tokens: max });
+    for await (const c of it){ const d = c.choices[0] && c.choices[0].delta && c.choices[0].delta.content; if (d) yield d; }
+  },
+  stop(){ try { if (this.engine) this.engine.interruptGenerate(); } catch(e){} }
+};
+
+function buildLLMMessages(chat, aiIndex, userText, spoken, att){
+  const depthHint = { concise: "Keep answers short — a few sentences unless code is needed.", balanced: "Be clear and reasonably concise.", detailed: "Be thorough and well structured, with examples." }[prefs.depth];
+  const mem = [memory.name && `name: ${memory.name}`, memory.role && `role: ${memory.role}`, ...memory.notes.slice(0, 8)].filter(Boolean).join("; ");
+  const entry = CosmicNLU.findEntry(userText);
+  let sys = "You are Cosmic AI, a friendly, sharp assistant running entirely on the user's device. Answer the question directly first, then add useful detail. Be accurate; if you are not sure, say so instead of guessing. Use Markdown, with fenced code blocks and language tags for code. " + depthHint;
+  if (thinkOn || prefs.autoThink) sys += " Think step by step before giving the final answer.";
+  if (mem) sys += ` What you know about the user: ${mem}.`;
+  if (entry) sys += ` Reference notes (use if relevant): ${entry.title} — ${entry.definition} Analogy: ${entry.analogy}`;
+  if (spoken) sys += " This is a spoken conversation: reply the way a person talks — one to three short sentences, contractions, no markdown, no lists, no code blocks. Only ask a follow-up question if it really helps.";
+  const hist = chat.messages.slice(Math.max(0, aiIndex - 12), aiIndex).map(m => ({ role: m.role === "model" ? "assistant" : "user", content: String(m.fullText || m.text || "").slice(0, 1800) })).filter(m => m.content);
+  if (hist.length && att && att.kind === "file") hist[hist.length - 1].content += `\n\n[Attached file: ${att.name}]\n\`\`\`\n${att.rawContent.slice(0, 5000)}\n\`\`\``;
+  let total = sys.length + hist.reduce((a, m) => a + m.content.length, 0);
+  while (hist.length > 1 && total > 9000){ total -= hist[0].content.length; hist.shift(); }
+  if (hist.length && hist[0].role === "assistant") hist.shift();
+  return [{ role: "system", content: sys }, ...hist];
+}
+
+/* ======================================================================
+   9. VOICE OUTPUT — Speaker queue, browser voices, optional HD neural voice
+   ====================================================================== */
+function scoreVoice(v){
+  if (!/^en/i.test(v.lang)) return -1;
+  const n = v.name; let s = 0;
+  if (/en[-_]US/i.test(v.lang)) s += 2;
+  if (/Online|Natural/i.test(n)) s += 10;
+  if (/Neural/i.test(n)) s += 8;
+  if (/Premium|Enhanced/i.test(n)) s += 6;
+  if (/Google/i.test(n)) s += 5;
+  if (/Samantha|Ava|Allison|Zoe|Serena|Aria|Jenny|Guy|Ryan|Sonia|Daniel/i.test(n)) s += 4;
+  if (/Fred|Zarvox|Albert|Bad News|Bells|Boing|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Hysterical|Junior|Kathy|Ralph|Bahh|Deranged|Pipe|Princess|Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley/i.test(n)) s -= 20;
+  return s;
+}
+function loadVoices(){
+  if (!("speechSynthesis" in window)) return;
+  const vs = (speechSynthesis.getVoices() || []).filter(v => scoreVoice(v) >= 0).sort((a, b) => scoreVoice(b) - scoreVoice(a));
+  voice.bestVoice = vs[0] || null;
+  const sel = $("voiceSelect"); if (!sel) return;
+  sel.innerHTML = `<option value="">Auto (best available)</option>` + vs.map(v => `<option value="${esc(v.name)}">${esc(v.name)}</option>`).join("");
+  sel.value = prefs.voiceName || "";
+}
+function pickVoice(){
+  if (prefs.voiceName){ const v = (speechSynthesis.getVoices() || []).find(x => x.name === prefs.voiceName); if (v) return v; }
+  return voice.bestVoice;
+}
+function speakBrowser(text){
+  return new Promise(res => {
+    if (!("speechSynthesis" in window)) return res();
+    const u = new SpeechSynthesisUtterance(text), v = pickVoice();
+    if (v){ u.voice = v; u.lang = v.lang; }
+    const q = /\?\s*$/.test(text);
+    u.rate = .97 + Math.random() * .07;
+    u.pitch = (q ? 1.07 : 1) + (Math.random() * .05 - .025);
+    u.onend = () => res(); u.onerror = () => res();
+    try { speechSynthesis.resume(); } catch(e){}
+    speechSynthesis.speak(u);
+  });
+}
+
+const HD = {
+  tts: null, ready: false, loading: false, ctx: null, src: null, cache: new Map(),
+  async enable(){
+    if (this.ready || this.loading) return;
+    this.loading = true; showLoader(0, "Loading HD voice…");
+    try {
+      const { KokoroTTS } = await import("https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/+esm");
+      this.tts = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", {
+        dtype: "q8", device: "wasm",
+        progress_callback: p => { if (p && p.status === "progress") showLoader((p.progress || 0) / 100, `Downloading HD voice… ${Math.round(p.progress || 0)}%`); }
+      });
+      this.ready = true; prefs.hd = true; savePrefs(); toast("HD voice is ready");
+    } catch(e){
+      console.error(e); this.ready = false; prefs.hd = false; savePrefs();
+      toast("HD voice couldn't load. Using your browser's voice.");
+    } finally { this.loading = false; hideLoader(); syncSettingsUI(); $("hdPrompt").classList.toggle("hidden", this.ready); }
+  },
+  disable(){ this.ready = false; prefs.hd = false; savePrefs(); this.stop(); this.cache.clear(); syncSettingsUI(); },
+  synth(text){
+    if (!this.cache.has(text)){
+      this.cache.set(text, this.tts.generate(text, { voice: prefs.hdVoice }));
+      if (this.cache.size > 10) this.cache.delete(this.cache.keys().next().value);
+    }
+    return this.cache.get(text);
+  },
+  async speak(text, alive, nextText){
+    const a = await this.synth(text);
+    if (!alive()) return;
+    if (nextText) this.synth(nextText).catch(() => {});
+    await new Promise(res => {
+      const ctx = this.ctx || (this.ctx = new (window.AudioContext || window.webkitAudioContext)());
+      if (ctx.state === "suspended") ctx.resume();
+      const buf = ctx.createBuffer(1, a.audio.length, a.sampling_rate); buf.copyToChannel(a.audio, 0);
+      const src = ctx.createBufferSource(); src.buffer = buf; src.connect(ctx.destination);
+      this.src = src; src.onended = () => res(); src.start();
+    });
+  },
+  stop(){ try { if (this.src) this.src.stop(); } catch(e){} this.src = null; }
+};
+
+const Speaker = {
+  q: [], busy: false, gen: 0, turnOpen: false,
+  say(t){ t = (t || "").trim(); if (!t) return; this.q.push(t); this.pump(); },
+  openTurn(){ this.turnOpen = true; },
+  closeTurn(){ this.turnOpen = false; if (!this.busy && !this.q.length) this.finish(this.gen); },
+  stop(){
+    this.gen++; this.q = []; this.busy = false; this.turnOpen = false; HD.stop();
+    try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch(e){}
+    setSpeaking(false);
+  },
+  isActive(){ return this.busy || this.q.length > 0; },
+  async pump(){
+    if (this.busy) return;
+    this.busy = true; const g = this.gen, alive = () => g === this.gen;
+    while (this.q.length && alive()){
+      const s = this.q.shift(); setSpeaking(true, s);
+      try { if (HD.ready) await HD.speak(s, alive, this.q[0]); else await speakBrowser(s); }
+      catch(e){ if (alive()) await speakBrowser(s); }
+      if (!alive()) return;
+      await sleep(70 + Math.random() * 110);
+    }
+    if (!alive()) return;
+    this.busy = false;
+    if (!this.turnOpen) this.finish(g);
+  },
+  finish(g){ if (g !== this.gen) return; setSpeaking(false); afterSpeech(); }
+};
+
+function setSpeaking(on, text){
+  voice.speaking = on;
+  if (!voice.open) return;
+  if (on) setVoiceUI("speaking", "Speaking", text);
+}
+function afterSpeech(){
+  if (voice.open && !voice.muted && !stream.active) setTimeout(startListening, 220);
+}
+
+/* ======================================================================
+   10. VOICE INPUT & HUD
+   ====================================================================== */
+function setVoiceUI(state, head, caption){
+  const orb = $("orb"); orb.className = `orb ${state} cursor-pointer`;
+  $("voiceHead").textContent = head;
+  if (caption !== undefined && caption !== null) $("voiceCaption").textContent = caption;
+}
+function initRecognition(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  try {
+    const r = new SR(); r.continuous = false; r.interimResults = true; r.lang = "en-US";
+    r.onstart = () => { voice.listening = true; if (voice.open && !voice.muted && !voice.speaking) setVoiceUI("listening", "Listening…", "Go ahead, I'm listening."); };
+    r.onresult = ev => {
+      let interim = "", fin = "";
+      for (let i = ev.resultIndex; i < ev.results.length; i++){ const c = ev.results[i][0].transcript; if (ev.results[i].isFinal) fin += c; else interim += c; }
+      const live = (fin || interim).trim();
+      if (voice.speaking){
+        if (!prefs.talkOver || live.split(/\s+/).length < 2) return;
+        Speaker.stop(); if (stream.active) stopStream();
+      }
+      if (live) $("voiceCaption").textContent = `“${live}”`;
+      if (fin.trim()){ voice.listening = false; setVoiceUI("thinking", "Thinking…", `“${fin.trim()}”`); submitMessage(fin.trim(), true); }
+    };
+    r.onerror = ev => {
+      voice.listening = false;
+      if (!voice.open || voice.muted) return;
+      if (ev.error === "no-speech") setTimeout(() => { if (voice.open && !voice.muted && (!voice.speaking || prefs.talkOver)) startListening(); }, 250);
+      else if (ev.error === "not-allowed" || ev.error === "service-not-allowed") setVoiceUI("idle", "Microphone blocked", "Allow microphone access in your browser, or use the keyboard button to type.");
+      else if (ev.error !== "aborted") setVoiceUI("idle", "Ready", "Say something, or use the keyboard button to type.");
+    };
+    r.onend = () => {
+      voice.listening = false;
+      if (voice.open && !voice.muted && !stream.active && (!voice.speaking || prefs.talkOver)) setTimeout(() => { if (voice.open && !voice.listening && !voice.muted) startListening(); }, 280);
+    };
+    voice.rec = r;
+  } catch(e){ voice.rec = null; }
+}
+function startListening(){
+  if (!voice.open || voice.muted || voice.listening) return;
+  if (voice.speaking && !prefs.talkOver) return;
+  if (!voice.rec){ setVoiceUI("idle", "No speech recognition", "This browser can't listen (try Chrome or Edge). Use the keyboard button to type — I'll still talk back."); return; }
+  try { voice.rec.start(); } catch(e){}
+}
+function openVoice(){
+  voice.open = true; voice.muted = false; syncMute();
+  $("voiceHud").classList.add("show");
+  $("hdPrompt").classList.toggle("hidden", HD.ready || HD.loading);
+  const chat = getChat();
+  if (chat && !chat.messages.length){
+    const nm = memory.name ? ` ${memory.name}` : "";
+    Speaker.openTurn();
+    speakText(pick([`Hey${nm}! What's on your mind?`, `Hi${nm}, I'm listening. What would you like to talk about?`, `Hey${nm}. Go ahead, I'm all ears.`]));
+    Speaker.closeTurn();
+  } else { setVoiceUI("listening", "Listening…", "Go ahead, I'm listening."); startListening(); }
+}
+function closeVoice(){
+  voice.open = false; voice.listening = false;
+  Speaker.stop();
+  if (voice.rec){ try { voice.rec.abort(); } catch(e){} }
+  $("voiceHud").classList.remove("show");
+}
+function toggleMute(){
+  voice.muted = !voice.muted; syncMute();
+  if (voice.muted){ if (voice.rec && voice.listening){ try { voice.rec.abort(); } catch(e){} voice.listening = false; } if (!voice.speaking) setVoiceUI("idle", "Muted", "Tap the microphone to unmute."); }
+  else if (!voice.speaking){ setVoiceUI("listening", "Listening…", "Go ahead, I'm listening."); startListening(); }
+}
+function syncMute(){
+  $("muteIcon").innerHTML = svg(voice.muted ? "micoff" : "mic");
+  $("muteBtn").style.background = voice.muted ? "#fff" : ""; $("muteBtn").style.color = voice.muted ? "#000" : "";
+}
+function onOrbTap(){
+  if (voice.speaking || Speaker.isActive()){
+    Speaker.stop(); if (stream.active) stopStream();
+    setVoiceUI("listening", "Listening…", "Go ahead, I'm listening."); if (!voice.muted) startListening();
+  }
+}
+function onVoiceTextSubmit(e){
+  e.preventDefault(); const i = $("voiceTypeInput"), t = i.value.trim(); if (!t) return; i.value = "";
+  Speaker.stop(); setVoiceUI("thinking", "Thinking…", `“${t}”`); submitMessage(t, true);
+}
+function openVoiceSettingsFromHud(){ openSettings(); }
+function testVoice(){ Speaker.stop(); Speaker.openTurn(); speakText("Hey there. This is how I sound. If it feels a bit robotic, try switching to the H D voice, or pick a different voice from the list."); Speaker.closeTurn(); }
+
+/* ======================================================================
+   11. CHAT LIFECYCLE
+   ====================================================================== */
+const getChat = () => chats.find(c => c.id === currentChatId) || null;
+
+function newChat(focus){
+  stopStream();
+  const cur = getChat();
+  if (cur && !cur.messages.length){ clearAttachment(); renderAll(); if (focus) $("input").focus(); return; }
+  const c = { id: "chat_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title: "New chat", pinned: false, updatedAt: Date.now(), activeTopic: null, activeQuiz: null, quizStats: { answered: 0, correct: 0 }, messages: [] };
+  chats.unshift(c); currentChatId = c.id; clearAttachment(); saveChats(); renderAll();
+  if (focus){ $("input").focus(); if (window.innerWidth < 768) closeSidebarMobile(); }
+}
+function switchChat(id){ stopStream(); currentChatId = id; clearAttachment(); renderAll(); closeSidebarMobile(); }
+
+function submitMessage(text, fromVoice = false){
+  const chat = getChat(); if (!chat) return;
+  if (stream.active) stopStream();
+  const speak = voice.open || fromVoice;
+  if (speak) Speaker.stop();
+  if (!chat.messages.length) chat.title = text.slice(0, 44) + (text.length > 44 ? "…" : "");
+  const att = attachment;
+  chat.messages.push({ role: "user", text, imageDataUrl: att && att.kind === "image" ? att.dataUrl : null, attachmentMeta: att ? { kind: att.kind, name: att.name } : null, ts: Date.now() });
+  chat.updatedAt = Date.now();
+
+  const { facts, nlu } = CosmicNLU.analyze(text, chat);
+  const useLLM = LLM.ready() && !TOOL_INTENTS.has(nlu.intent);
+  const ai = { role: "model", text: "", fullText: "", spokenText: "", reasoning: "", ts: Date.now() };
+
+  if (useLLM){
+    ai.reasoning = [`• Model: ${MODELS[prefs.model].label} (local LLM)`, `• Intent: ${nlu.intent}`, `• Depth: ${prefs.depth}`].join("\n");
+    chat.messages.push(ai); clearAttachment(); saveChats(); renderAll();
+    streamLLM(chat, chat.messages.length - 1, nlu.llmPrompt || text, speak, att, facts);
+  } else {
+    const out = CosmicNLU.respond(nlu, facts, chat);
+    Object.assign(ai, { fullText: out.markdown, spokenText: out.spoken, reasoning: out.reasoning, isQuiz: !!out.isQuiz, imageDataUrl: out.imageDataUrl || null, imageMeta: out.imageMeta || null });
+    chat.messages.push(ai); clearAttachment(); saveChats(); renderAll();
+    streamFake(chat, chat.messages.length - 1);
+    if (speak){
+      Speaker.openTurn(); splitSentences(out.spoken).forEach(s => Speaker.say(s)); Speaker.closeTurn();
+      if (/\b(bye|goodbye|hang up|end call|stop voice)\b/i.test(text)) { const g = Speaker.gen; const w = setInterval(() => { if (!Speaker.isActive() || g !== Speaker.gen){ clearInterval(w); if (g === Speaker.gen) closeVoice(); } }, 300); }
+    }
+  }
+  if (memory.name || facts.length) renderHeroTitle();
+}
+
+function msgEl(i){ const f = $("feed"); return f && f.children[i] ? f.children[i] : null; }
+
+function paintMessage(i, streaming){
+  const chat = getChat(), m = chat && chat.messages[i], el = msgEl(i); if (!m || !el) return;
+  const prose = el.querySelector(".prose"); if (!prose) return;
+  const body = m.text ? renderMd(m.text, streaming) : "";
+  prose.innerHTML = (body || (streaming ? `<div class="typing"><span></span><span></span><span></span></div>` : "")) + (streaming && m.text ? `<span class="stream-cursor"></span>` : "");
+  if (stickToBottom) $("scroller").scrollTop = $("scroller").scrollHeight;
+}
+
+function streamFake(chat, idx){
+  const m = chat.messages[idx], full = m.fullText || "";
+  let cur = 0; stream = { active: true, cancelled: false, timer: null, llm: false }; updateSendBtn();
+  const step = Math.max(10, Math.ceil(full.length / 90));
+  stream.timer = setInterval(() => {
+    cur = Math.min(full.length, cur + step); m.text = full.slice(0, cur);
+    paintMessage(idx, cur < full.length);
+    if (cur >= full.length){ clearInterval(stream.timer); stream.active = false; saveChats(); renderThread(); updateSendBtn(); }
+  }, 18);
+}
+
+async function streamLLM(chat, idx, userText, speak, att, facts){
+  const m = chat.messages[idx];
+  stream = { active: true, cancelled: false, timer: null, llm: true }; updateSendBtn(); paintMessage(idx, true);
+  let raf = 0;
+  const paint = () => { if (raf) return; raf = setTimeout(() => { raf = 0; paintMessage(idx, true); }, 70); };
+  let sbuf = "";
+  const flushSpeech = final => {
+    if (!speak) return;
+    if (!final && (sbuf.match(/```/g) || []).length % 2) return;
+    let cut = -1; const re = /[.!?:]+["')\]]*(\s+|\n+)/g; let r;
+    while ((r = re.exec(sbuf))) cut = r.index + r[0].length;
+    if (final) cut = sbuf.length;
+    if (cut <= 0) return;
+    const piece = sbuf.slice(0, cut); sbuf = sbuf.slice(cut);
+    const sp = toSpeech(piece); if (sp) splitSentences(sp).forEach(s => Speaker.say(s));
+  };
+  if (speak) Speaker.openTurn();
+  try {
+    const msgs = buildLLMMessages(chat, idx, userText, speak, att);
+    for await (const tok of LLM.generate(msgs)){
+      if (stream.cancelled) break;
+      m.fullText += tok; m.text = m.fullText; sbuf += tok; paint(); flushSpeech(false);
+    }
+  } catch(e){
+    console.error(e);
+    if (!m.fullText){
+      const { nlu } = CosmicNLU.analyze(userText, chat);
+      const out = CosmicNLU.respond(nlu, [], chat); m.fullText = m.text = out.markdown; sbuf = out.spoken;
+    } else { m.fullText += "\n\n*(generation interrupted)*"; m.text = m.fullText; }
+  }
+  clearTimeout(raf);
+  if (!stream.cancelled) flushSpeech(true);
+  if (speak) Speaker.closeTurn();
+  if (facts && facts.length) { m.fullText += `\n\n> *Saved to memory: ${facts.join("; ")}*`; m.text = m.fullText; }
+  m.spokenText = toSpeech(m.fullText);
+  stream.active = false; saveChats(); renderThread(); updateSendBtn();
+}
+
+function stopStream(){
+  if (!stream.active) return;
+  stream.cancelled = true;
+  if (stream.timer) clearInterval(stream.timer);
+  if (stream.llm) LLM.stop();
+  stream.active = false; updateSendBtn();
+  const chat = getChat();
+  if (chat && chat.messages.length){
+    const last = chat.messages[chat.messages.length - 1];
+    if (last.role === "model" && !stream.llm && !last.text) last.text = last.fullText;
+    if (last.role === "model" && last.text) last.fullText = last.text;
+    saveChats(); renderThread();
+  }
+}
+
+function regenerate(){
+  const chat = getChat(); if (!chat || chat.messages.length < 2) return;
+  stopStream();
+  if (chat.messages[chat.messages.length - 1].role === "model") chat.messages.pop();
+  const u = chat.messages[chat.messages.length - 1]; if (!u || u.role !== "user") return;
+  chat.messages.pop(); submitMessage(u.text);
+}
+
+/* ======================================================================
+   12. RENDERING
+   ====================================================================== */
+function greeting(){ const h = new Date().getHours(); return h < 5 ? "Burning the midnight oil" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening"; }
+function renderHeroTitle(){ $("heroTitle").textContent = memory.name ? `${greeting()}, ${memory.name}.` : "What can I help with?"; }
+
+function renderAll(){ renderSidebar(); renderThread(); renderModelLabel(); updateSendBtn(); }
+
+function renderThread(){
+  const chat = getChat(), empty = !chat || !chat.messages.length;
+  $("hero").classList.toggle("hidden", !empty);
+  $("thread").classList.toggle("hidden", empty);
+  $("footerSlot").classList.toggle("hidden", empty);
+  $("disclaimer").classList.toggle("hidden", empty);
+  $("exportBtn").classList.toggle("hidden", empty);
+  const wrap = $("composerWrap");
+  const slot = empty ? $("heroSlot") : $("footerSlot");
+  if (wrap.parentElement !== slot) slot.appendChild(wrap);
+  $("input").placeholder = empty ? "Ask anything" : "Message Cosmic AI";
+  renderHeroTitle();
+  if (empty) return;
+
+  const feed = $("feed"); feed.innerHTML = "";
+  chat.messages.forEach((m, i) => {
+    const last = i === chat.messages.length - 1;
+    feed.appendChild(m.role === "user" ? userEl(m, i) : aiEl(m, i, last, last && stream.active));
+  });
+  if (stickToBottom) $("scroller").scrollTop = $("scroller").scrollHeight;
+}
+
+function userEl(m, i){
+  const d = document.createElement("div"); d.className = "flex justify-end group msg-in";
+  const img = m.imageDataUrl ? `<img src="${m.imageDataUrl}" alt="" class="max-h-56 rounded-2xl mb-2 object-contain">` : "";
+  const file = (!m.imageDataUrl && m.attachmentMeta) ? `<div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-[#3a3a3a] text-[11px] font-mono mb-2">${esc(m.attachmentMeta.name)}</div>` : "";
+  d.innerHTML = `<div class="max-w-[85%] flex flex-col items-end">
+    <div id="ub_${i}" class="user-bubble select-text">${img}${file}<div class="whitespace-pre-wrap break-words">${esc(m.text)}</div></div>
+    <button type="button" onclick="editMessage(${i})" class="act-btn mt-1 opacity-0 group-hover:opacity-100 focus:opacity-100" title="Edit">${ic("edit")}</button></div>`;
+  return d;
+}
+
+function aiEl(m, i, last, streaming){
+  const d = document.createElement("div"); d.className = "flex items-start gap-3.5 msg-in";
+  const showR = m.reasoning && (thinkOn || prefs.autoThink);
+  const reasoning = showR ? `<details class="mb-3 rounded-xl bg-[#262626] border border-[#363636] px-3 py-2 text-xs"><summary class="cursor-pointer font-mono text-[11px] text-[#aaa] hover:text-white select-none">Reasoning</summary><pre class="mt-2 pt-2 border-t border-[#363636] font-mono text-[11px] text-[#999] whitespace-pre-wrap">${esc(m.reasoning)}</pre></details>` : "";
+  const body = m.text ? renderMd(m.text, streaming) : "";
+  const inner = body || (streaming ? `<div class="typing"><span></span><span></span><span></span></div>` : "");
+  const art = m.imageDataUrl ? `<div class="mt-3 rounded-2xl overflow-hidden border border-[#3a3a3a]"><img src="${m.imageDataUrl}" alt="Generated art" class="w-full h-auto block">
+    <div class="px-3.5 py-2.5 bg-[#262626] flex items-center justify-between gap-2 text-xs"><span class="font-mono text-[11px] text-[#aaa]">800×500 PNG${m.imageMeta ? ` · #${m.imageMeta.seed}` : ""}</span>
+    <div class="flex gap-2"><button type="button" onclick="regenArt(${i})" class="text-btn !py-1 !text-[11px]">New variation</button><a href="${m.imageDataUrl}" download="cosmic-canvas.png" class="text-btn solid !py-1 !text-[11px]">Download</a></div></div></div>` : "";
+  const quiz = (!streaming && last && m.isQuiz) ? `<div class="flex flex-wrap gap-2 mt-3">${["A","B","C","D"].map(o => `<button type="button" onclick="submitMessage('${o}')" class="text-btn">Option ${o}</button>`).join("")}</div>` : "";
+  const acts = !streaming ? `<div class="flex items-center gap-0.5 mt-2 -ml-2">
+    <button type="button" class="act-btn" onclick="copyMsg(${i})" title="Copy">${ic("copy")}</button>
+    <button type="button" class="act-btn" onclick="readAloud(${i})" title="Read aloud">${ic("speaker")}</button>
+    ${last ? `<button type="button" class="act-btn" onclick="regenerate()" title="Regenerate">${ic("refresh")}</button>` : ""}</div>` : "";
+  d.innerHTML = `<div class="w-7 h-7 rounded-full border border-[#3d3d3d] flex items-center justify-center shrink-0 mt-1"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="2.8" fill="currentColor"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(-28 12 12)"/></svg></div>
+    <div class="flex-1 min-w-0 select-text">${reasoning}<div class="prose">${inner}</div>${art}${quiz}${acts}</div>`;
+  return d;
+}
+
+function editMessage(i){
+  const chat = getChat(), b = $("ub_" + i); if (!chat || !b) return;
+  b.innerHTML = `<textarea id="edit_${i}" rows="2" class="w-full min-w-[240px] sm:min-w-[380px] bg-[#212121] border border-[#555] rounded-xl p-2.5 text-[15px] focus:outline-none resize-y">${esc(chat.messages[i].text)}</textarea>
+    <div class="flex justify-end gap-2 mt-2"><button type="button" class="text-btn" onclick="renderThread()">Cancel</button><button type="button" class="text-btn solid" onclick="saveEdit(${i})">Send</button></div>`;
+  $("edit_" + i).focus();
+}
+function saveEdit(i){
+  const chat = getChat(), b = $("edit_" + i); if (!chat || !b) return;
+  const t = b.value.trim(); if (!t) return;
+  stopStream(); chat.messages = chat.messages.slice(0, i); submitMessage(t);
+}
+
+function copyText(t, msg = "Copied"){
+  const fb = () => { const a = document.createElement("textarea"); a.value = t; a.style.cssText = "position:fixed;left:-9999px"; document.body.appendChild(a); a.select(); try { document.execCommand("copy"); toast(msg); } catch(e){ toast("Copy not available"); } a.remove(); };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).then(() => toast(msg)).catch(fb); else fb();
+}
+function copyMsg(i){ const c = getChat(); if (c && c.messages[i]) copyText(c.messages[i].fullText || c.messages[i].text); }
+function readAloud(i){
+  const c = getChat(); if (!c || !c.messages[i]) return;
+  if (Speaker.isActive()){ Speaker.stop(); return; }
+  Speaker.stop(); Speaker.openTurn(); speakText(c.messages[i].fullText || c.messages[i].text); Speaker.closeTurn();
+}
+
+/* ---- Sidebar ---- */
+function renderSidebar(){
+  const q = ($("chatSearch").value || "").toLowerCase().trim();
+  const list = chats.filter(c => c.messages.length && (!q || (c.title || "").toLowerCase().includes(q) || c.messages.some(m => (m.text || "").toLowerCase().includes(q))))
+    .sort((a, b) => (b.pinned - a.pinned) || (b.updatedAt - a.updatedAt));
+  const el = $("chatList");
+  if (!list.length){ el.innerHTML = `<div class="text-xs text-[#6b6b6b] px-3 py-6 text-center">${q ? "No matching chats" : "Your chats will show up here"}</div>`; return; }
+  const now = Date.now(), DAY = 864e5, groups = { Pinned: [], Today: [], "Previous 7 days": [], Older: [] };
+  list.forEach(c => { const age = now - c.updatedAt; (c.pinned ? groups.Pinned : age < DAY ? groups.Today : age < 7 * DAY ? groups["Previous 7 days"] : groups.Older).push(c); });
+  el.innerHTML = Object.entries(groups).filter(([, v]) => v.length).map(([name, items]) =>
+    `<div class="group-label">${name}</div>` + items.map(c => `
+      <div class="chat-item ${c.id === currentChatId ? "active" : ""}" onclick="switchChat('${c.id}')">
+        <span class="truncate flex-1">${esc(c.title || "New chat")}</span>
+        <span class="acts">
+          <button type="button" title="${c.pinned ? "Unpin" : "Pin"}" onclick="event.stopPropagation();togglePin('${c.id}')">${ic("pin", "w-3.5 h-3.5")}</button>
+          <button type="button" title="Delete" onclick="event.stopPropagation();askDelete('${c.id}')">${ic("trash", "w-3.5 h-3.5")}</button>
+        </span>
+      </div>`).join("")).join("");
+}
+function togglePin(id){ const c = chats.find(x => x.id === id); if (c){ c.pinned = !c.pinned; saveChats(); renderSidebar(); } }
+function askDelete(id){
+  openConfirm("Delete chat?", "This conversation will be permanently removed from this device.", () => {
+    chats = chats.filter(c => c.id !== id);
+    if (!chats.length) { currentChatId = null; newChat(false); }
+    else if (currentChatId === id) currentChatId = chats[0].id;
+    saveChats(); renderAll(); toast("Chat deleted");
+  });
+}
+function toggleSidebar(){
+  const sb = $("sidebar");
+  if (window.innerWidth < 768){ const open = sb.classList.toggle("open"); $("sidebarBackdrop").classList.toggle("hidden", !open); }
+  else { sb.classList.toggle("collapsed"); try { localStorage.setItem("cosmic_sb_collapsed", sb.classList.contains("collapsed") ? "1" : "0"); } catch(e){} }
+}
+function closeSidebarMobile(){ if (window.innerWidth < 768){ $("sidebar").classList.remove("open"); $("sidebarBackdrop").classList.add("hidden"); } }
+
+/* ---- Model menu ---- */
+function renderModelLabel(){ $("modelLabel").textContent = MODELS[prefs.model].label; }
+function renderModelMenu(){
+  $("modelMenu").innerHTML = Object.entries(MODELS).map(([k, m]) => {
+    const loaded = m.id && LLM.loadedId === m.id;
+    return `<button type="button" onclick="setModel('${k}')"><span><span class="block text-sm font-medium">${m.label}${loaded ? ` <span class="text-[10px] ml-1 px-1.5 py-0.5 rounded bg-[#444] text-[#ddd] align-middle">ready</span>` : ""}</span><span class="block text-xs text-[#9b9b9b] mt-0.5">${m.sub}</span></span>${prefs.model === k ? ic("check", "w-4 h-4 shrink-0") : ""}</button>`;
+  }).join("");
+}
+function toggleModelMenu(e){ e.stopPropagation(); renderModelMenu(); $("modelMenu").classList.toggle("hidden"); }
+function setModel(key, silent){
+  prefs.model = key; savePrefs(); renderModelLabel(); renderModelMenu(); $("modelMenu").classList.add("hidden");
+  if (key !== "instant"){ if (!silent) toast(MODELS[key].label + (LLM.ready() ? "" : " — downloading the model once; Instant answers until it's ready")); LLM.ensure(key); }
+  else if (!silent) toast("Switched to Cosmic-1 Instant");
+}
+
+/* ---- Composer ---- */
+function autoResize(el){ el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 200) + "px"; }
+function updateSendBtn(){
+  const b = $("sendBtn"), has = !!($("input").value.trim() || attachment);
+  if (stream.active){ b.innerHTML = svg("stop").replace("w-full h-full", "w-full h-full"); b.className = "send-btn"; b.title = "Stop"; b.firstElementChild.style.width = "16px"; b.firstElementChild.style.height = "16px"; }
+  else { b.innerHTML = `<span class="w-[18px] h-[18px] inline-block">${svg("up")}</span>`; b.className = "send-btn" + (has ? "" : " idle"); b.title = "Send"; }
+}
+function toggleThink(){
+  thinkOn = !thinkOn;
+  $("thinkBtn").classList.toggle("on", thinkOn);
+  renderThread();
+}
+function onInput(el){
+  autoResize(el); updateSendBtn();
+  const v = el.value;
+  if (v.startsWith("/") && !v.includes("\n") && !v.includes(" ")){
+    const list = SLASH.filter(c => c.cmd.startsWith(v.toLowerCase()));
+    if (list.length){ slash = { open: true, idx: 0, list }; renderSlash(); return; }
+  }
+  closeSlash();
+}
+function renderSlash(){
+  const m = $("slashMenu");
+  if (!slash.open){ m.classList.add("hidden"); return; }
+  m.classList.remove("hidden");
+  m.innerHTML = slash.list.map((c, i) => `<button type="button" class="${i === slash.idx ? "bg-[#3a3a3a]" : ""}" onclick="pickSlash(${i})"><span class="font-mono text-xs"><span class="font-semibold">${c.cmd}</span> <span class="text-[#8a8a8a]">${esc(c.args)}</span></span><span class="text-xs text-[#9b9b9b] truncate">${esc(c.desc)}</span></button>`).join("");
+}
+function closeSlash(){ slash.open = false; $("slashMenu").classList.add("hidden"); }
+function pickSlash(i){
+  const c = slash.list[i]; if (!c) return; closeSlash();
+  const inp = $("input");
+  if (c.cmd === "/export"){ inp.value = ""; exportChatMd(); return; }
+  if (c.cmd === "/clear"){ inp.value = ""; newChat(true); return; }
+  inp.value = c.args ? c.cmd + " " : c.cmd; inp.focus(); autoResize(inp); updateSendBtn();
+  if (!c.args){ const t = inp.value; inp.value = ""; autoResize(inp); submitMessage(t); }
+}
+function onKeydown(e){
+  if (slash.open){
+    if (e.key === "ArrowDown"){ e.preventDefault(); slash.idx = (slash.idx + 1) % slash.list.length; renderSlash(); return; }
+    if (e.key === "ArrowUp"){ e.preventDefault(); slash.idx = (slash.idx - 1 + slash.list.length) % slash.list.length; renderSlash(); return; }
+    if (e.key === "Enter" || e.key === "Tab"){ e.preventDefault(); pickSlash(slash.idx); return; }
+    if (e.key === "Escape"){ e.preventDefault(); closeSlash(); return; }
+  }
+  if (e.key === "ArrowUp" && !e.target.value.trim()){
+    const chat = getChat();
+    if (chat) for (let i = chat.messages.length - 1; i >= 0; i--) if (chat.messages[i].role === "user"){ e.preventDefault(); editMessage(i); return; }
+  }
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing){ e.preventDefault(); onSubmit(e); }
+}
+function onSubmit(e){
+  e.preventDefault();
+  if (stream.active){ stopStream(); return; }
+  const inp = $("input"), text = inp.value.trim();
+  if (!text && !attachment) return;
+  if (text.toLowerCase() === "/export"){ inp.value = ""; autoResize(inp); updateSendBtn(); exportChatMd(); return; }
+  if (text.toLowerCase() === "/clear"){ inp.value = ""; autoResize(inp); updateSendBtn(); newChat(true); return; }
+  inp.value = ""; autoResize(inp); closeSlash();
+  submitMessage(text || `Analyze the attached ${attachment.kind === "image" ? "image" : "file"}: ${attachment.name}`);
+}
+
+/* ---- Export / import ---- */
+function exportChatMd(){
+  const c = getChat(); if (!c || !c.messages.length) return;
+  const md = [`# ${c.title}`, "", ...c.messages.flatMap(m => [`## ${m.role === "user" ? "You" : "Cosmic AI"}`, m.fullText || m.text, ""])].join("\n");
+  download(new Blob([md], { type: "text/markdown" }), `${(c.title || "chat").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.md`); toast("Exported Markdown");
+}
+function exportAllJson(){ download(new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), chats, memory }, null, 2)], { type: "application/json" }), `cosmic-ai-backup-${Date.now()}.json`); toast("Backup downloaded"); }
+function download(blob, name){ const u = URL.createObjectURL(blob), a = document.createElement("a"); a.href = u; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(u), 1000); }
+function importJson(e){
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  const rd = new FileReader();
+  rd.onload = ev => {
+    try {
+      const d = JSON.parse(String(ev.target.result || "{}"));
+      if (!Array.isArray(d.chats) || !d.chats.length) return toast("Not a valid backup");
+      chats = d.chats.map((c, i) => ({ activeTopic: null, activeQuiz: null, quizStats: { answered: 0, correct: 0 }, pinned: false, updatedAt: Date.now(), ...c, id: String(c.id || ("imp_" + i + Date.now())).replace(/[^\w-]/g, ""), messages: Array.isArray(c.messages) ? c.messages : [] }));
+      currentChatId = chats[0].id;
+      if (d.memory && typeof d.memory === "object") memory = { name: d.memory.name || "", role: d.memory.role || "", notes: Array.isArray(d.memory.notes) ? d.memory.notes : [] };
+      saveChats(); saveMemory(); renderAll(); toast(`Imported ${chats.length} chats`);
+    } catch(err){ toast("Couldn't read that file"); }
+  };
+  rd.readAsText(f); e.target.value = "";
+}
+
+/* ---- Settings ---- */
+function openSettings(){ syncSettingsUI(); loadVoices(); renderMemory(); $("settingsModal").classList.add("show"); }
+function closeSettings(){ $("settingsModal").classList.remove("show"); }
+function setDepth(d){ prefs.depth = d; savePrefs(); syncSettingsUI(); }
+function toggleAutoThink(){ prefs.autoThink = !prefs.autoThink; savePrefs(); syncSettingsUI(); renderThread(); }
+function toggleTalkOver(){ prefs.talkOver = !prefs.talkOver; savePrefs(); syncSettingsUI(); }
+function setVoiceName(v){ prefs.voiceName = v; savePrefs(); }
+function setHdVoice(v){ prefs.hdVoice = v; HD.cache.clear(); savePrefs(); }
+function toggleHD(){ if (HD.ready) HD.disable(); else HD.enable(); }
+function syncSettingsUI(){
+  ["concise","balanced","detailed"].forEach(k => $("depth-" + k).classList.toggle("on", prefs.depth === k));
+  $("autoThinkBtn").textContent = prefs.autoThink ? "On" : "Off"; $("autoThinkBtn").classList.toggle("solid", prefs.autoThink);
+  $("talkOverBtn").textContent = prefs.talkOver ? "On" : "Off"; $("talkOverBtn").classList.toggle("solid", prefs.talkOver);
+  $("hdBtn").textContent = HD.loading ? "Loading…" : HD.ready ? "Disable" : "Enable"; $("hdBtn").classList.toggle("solid", !HD.ready && !HD.loading);
+  $("hdVoiceSelect").value = prefs.hdVoice;
+}
+function renderMemory(){
+  const rows = []; if (memory.name) rows.push({ t: "name", l: `Name: ${memory.name}` }); if (memory.role) rows.push({ t: "role", l: `Role: ${memory.role}` });
+  memory.notes.forEach((n, i) => rows.push({ t: "note", i, l: n }));
+  $("memList").innerHTML = rows.length ? rows.map(r => `<div class="flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-[#1d1d1d] border border-[#333] text-xs"><span class="truncate text-[#ddd]">${esc(r.l)}</span><button type="button" onclick="delMemory('${r.t}',${r.i ?? -1})" class="text-[#888] hover:text-white">✕</button></div>`).join("") : `<div class="text-xs text-[#777] py-1">Nothing saved yet.</div>`;
+}
+function addMemory(e){ e.preventDefault(); const i = $("memInput"), v = i.value.trim(); if (!v) return; memory.notes.unshift(v); saveMemory(); i.value = ""; renderMemory(); toast("Saved"); }
+function delMemory(t, i){ if (t === "name") memory.name = ""; else if (t === "role") memory.role = ""; else if (i >= 0) memory.notes.splice(i, 1); saveMemory(); renderMemory(); renderHeroTitle(); }
+function clearMemory(){ memory = { name: "", role: "", notes: [] }; saveMemory(); renderMemory(); renderHeroTitle(); toast("Memory cleared"); }
+function askDeleteAll(){
+  closeSettings();
+  openConfirm("Delete all chats?", "Every saved conversation on this device will be removed. Memory is kept.", () => { chats = []; currentChatId = null; newChat(true); toast("All chats deleted"); });
+}
+
+/* ---- Preview / confirm ---- */
+function openPreview(src){ $("previewFrame").style.width = "100%"; $("previewFrame").srcdoc = src; $("previewModal").classList.add("show"); }
+function closePreview(){ $("previewModal").classList.remove("show"); $("previewFrame").srcdoc = ""; }
+function openConfirm(t, m, cb){ $("confirmTitle").textContent = t; $("confirmMsg").textContent = m; confirmCb = cb; $("confirmModal").classList.add("show"); }
+function closeConfirm(){ confirmCb = null; $("confirmModal").classList.remove("show"); }
+
+/* ======================================================================
+   13. GLOBAL EVENTS & INIT
+   ====================================================================== */
+document.addEventListener("click", e => {
+  const cp = e.target.closest("button[data-copy]");
+  if (cp){ const code = cp.closest("pre") && cp.closest("pre").querySelector("code"); if (code){ copyText(code.textContent || "", "Code copied"); cp.textContent = "Copied ✓"; setTimeout(() => cp.textContent = "Copy code", 1500); } return; }
+  const pv = e.target.closest("button[data-preview]");
+  if (pv){ const code = pv.closest("pre") && pv.closest("pre").querySelector("code"); if (code) openPreview(code.textContent || ""); return; }
+  if (!e.target.closest("#modelMenu")) $("modelMenu").classList.add("hidden");
+});
+$("confirmOk").addEventListener("click", () => { const f = confirmCb; closeConfirm(); if (typeof f === "function") f(); });
+
+let dragDepth = 0;
+window.addEventListener("dragenter", e => { e.preventDefault(); dragDepth++; $("dropZone").classList.add("show"); });
+window.addEventListener("dragleave", e => { e.preventDefault(); dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) $("dropZone").classList.remove("show"); });
+window.addEventListener("dragover", e => e.preventDefault());
+window.addEventListener("drop", e => { e.preventDefault(); dragDepth = 0; $("dropZone").classList.remove("show"); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) attachFile(f); });
+window.addEventListener("paste", e => {
+  const items = e.clipboardData && e.clipboardData.items; if (!items) return;
+  for (const it of items) if (it.type && it.type.startsWith("image/")){ const f = it.getAsFile(); if (f){ attachFile(f); toast("Image attached"); break; } }
+});
+$("scroller").addEventListener("scroll", () => { const s = $("scroller"); stickToBottom = s.scrollHeight - s.scrollTop - s.clientHeight < 140; });
+
+document.addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k"){ e.preventDefault(); if (window.innerWidth < 768 && !$("sidebar").classList.contains("open")) toggleSidebar(); else if ($("sidebar").classList.contains("collapsed")) toggleSidebar(); $("chatSearch").focus(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "o"){ e.preventDefault(); newChat(true); return; }
+  if (e.key === "Escape"){
+    if ($("previewModal").classList.contains("show")) closePreview();
+    else if ($("confirmModal").classList.contains("show")) closeConfirm();
+    else if ($("settingsModal").classList.contains("show")) closeSettings();
+    else if (!$("modelMenu").classList.contains("hidden")) $("modelMenu").classList.add("hidden");
+    else if (slash.open) closeSlash();
+    else if (voice.open) closeVoice();
+    else if (stream.active) stopStream();
+  }
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll("[data-ic]").forEach(el => { el.innerHTML = svg(el.dataset.ic); });
+  if (window.marked && marked.setOptions) marked.setOptions({ breaks: true, gfm: true });
+
+  const sp = sGet("cosmic_ai_prefs_v4", null) || sGet("cosmic_ai_prefs_v3", null);
+  if (sp){
+    prefs = { ...prefs, ...sp };
+    if (sp.selectedModel && !sp.model) prefs.model = "instant";
+    if (sp.responseDepth && !sp.depth) prefs.depth = sp.responseDepth;
+    if (sp.autoThinkSetting && !sp.autoThink) prefs.autoThink = true;
+  }
+  if (!MODELS[prefs.model]) prefs.model = "instant";
+  thinkOn = false; $("thinkBtn").classList.toggle("on", thinkOn);
+
+  memory = sGet("cosmic_ai_memory_v4", null) || sGet("cosmic_ai_memory_v3", { name: "", role: "", notes: [] });
+  chats = sGet("cosmic_ai_chats_v4", null) || sGet("cosmic_ai_chats_v3", []);
+  if (!Array.isArray(chats)) chats = [];
+  chats = chats.filter(c => c && Array.isArray(c.messages)).map(c => ({ activeTopic: null, activeQuiz: null, quizStats: { answered: 0, correct: 0 }, pinned: false, updatedAt: Date.now(), ...c, id: String(c.id).replace(/[^\w-]/g, "") }));
+
+  if (window.innerWidth >= 768 && sGet("cosmic_sb_collapsed", "0") === "1") $("sidebar").classList.add("collapsed");
+
+  if (!chats.length || chats[0].messages.length){ currentChatId = null; newChat(false); }
+  else currentChatId = chats[0].id;
+
+  renderModelLabel(); renderModelMenu(); renderAll(); syncMute();
+  initRecognition();
+  if ("speechSynthesis" in window){ loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
+  if (prefs.model !== "instant") setTimeout(() => LLM.ensure(prefs.model), 800);
+  if (prefs.hd) setTimeout(() => HD.enable(), 1200);
+});
+</script>
+</body>
+</html>
